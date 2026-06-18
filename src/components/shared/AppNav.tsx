@@ -18,12 +18,11 @@ import {
   X,
   Sparkles,
   Settings,
-  Crown,
 } from "lucide-react";
 import { NightGramWordmark } from "@/components/shared/NightGramLogo";
-import { CoinsBadge, PremiumBadge } from "@/components/shared/Badges";
 import { GlowAvatar } from "@/components/shared/GlowAvatar";
 import { NotificationBell } from "@/components/shared/NotificationBell";
+import { BalanceDropdown } from "@/components/shared/BalanceDropdown";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -52,10 +51,7 @@ export function AppNav() {
   return (
     <>
       {/* Desktop top bar */}
-      <motion.header
-        initial={false}
-        className="fixed top-0 inset-x-0 z-50"
-      >
+      <motion.header initial={false} className="fixed top-0 inset-x-0 z-50">
         <div className="max-w-7xl mx-auto px-4 pt-3">
           <div className="glass-strong rounded-2xl px-4 py-2.5 flex items-center justify-between relative">
             <Link href="/feed" className="shrink-0">
@@ -96,20 +92,11 @@ export function AppNav() {
               })}
             </nav>
 
-            {/* Right — coins + premium + notifications + settings + avatar */}
+            {/* Right — balance dropdown + notifications + settings + avatar */}
             <div className="flex items-center gap-2">
-              <Link href="/store/premium" className="hidden sm:block">
-                <CoinsBadge amount={user.nightCoins} />
-              </Link>
-              {user.isPremium ? (
-                <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold" style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.45)", color: "#fbbf24" }}>
-                  <Crown size={14} className="fill-[#fbbf24]" /> Premium
-                </span>
-              ) : (
-                <Link href="/store/premium" className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold glass hover:brightness-125 transition">
-                  <Crown size={14} /> Premium
-                </Link>
-              )}
+              <div className="hidden sm:block">
+                <BalanceDropdown />
+              </div>
               <NotificationBell />
               <Link
                 href="/settings"
@@ -213,6 +200,13 @@ export function AppNav() {
                 );
               })}
               <Link
+                href="/store/premium"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-3 text-white/80 hover:bg-neon-purple/10 transition mb-1"
+              >
+                <Sparkles size={18} /> Premium и NightCoins
+              </Link>
+              <Link
                 href="/notifications"
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-3 rounded-xl px-3 py-3 text-white/80 hover:bg-neon-purple/10 transition mb-1"
@@ -227,12 +221,6 @@ export function AppNav() {
                 <Settings size={18} /> Настройки
               </Link>
               <div className="mt-auto pt-4 border-t border-white/5">
-                <div className="flex items-center justify-between mb-3">
-                  <CoinsBadge amount={user.nightCoins} />
-                  <Link href="/store" onClick={() => setMobileOpen(false)} className="text-xs text-neon-purple flex items-center gap-1">
-                    <Sparkles size={12} /> Пополнить
-                  </Link>
-                </div>
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center gap-2 rounded-xl px-3 py-3 text-red-400 hover:bg-red-500/10 transition"

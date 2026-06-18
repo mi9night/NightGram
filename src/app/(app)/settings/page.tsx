@@ -35,6 +35,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useAppearance, THEMES, ACCENTS } from "@/context/AppearanceContext";
 import { api } from "@/lib/api";
 import { uploadMedia } from "@/lib/supabase";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { NAME_COLORS } from "@/lib/nameColors";
 
@@ -190,31 +191,49 @@ function ProfileSection() {
     <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-5">
       <SectionTitle icon={UserIcon} title="Профиль" desc="Аватар, баннер, имя и ID" />
 
-      {/* Banner preview + picker */}
+      {/* Banner — Premium only */}
       <div>
-        <label className="text-xs text-white/60 mb-2 ml-1 block">Баннер</label>
-        <button
-          onClick={() => bannerInput.current?.click()}
-          className="relative w-full h-28 md:h-32 rounded-2xl overflow-hidden group glass"
-        >
-          {bannerUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={bannerUrl} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div
-              className="h-full w-full grid place-items-center text-white/40"
-              style={{ background: `linear-gradient(120deg, ${nameColor}, var(--accent-tertiary), var(--accent-secondary))` }}
-            >
-              <span className="flex items-center gap-1.5 text-sm font-medium">
-                <ImageIcon size={16} /> Загрузить баннер
-              </span>
-            </div>
+        <label className="text-xs text-white/60 mb-2 ml-1 flex items-center gap-1.5">
+          Баннер
+          {!user.isPremium && (
+            <span className="rounded-full px-1.5 py-0.5 text-[9px] font-bold" style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.3)", color: "#fbbf24" }}>
+              <Crown size={8} className="inline" /> Premium
+            </span>
           )}
-          <div className="absolute inset-0 grid place-items-center bg-black/50 opacity-0 group-hover:opacity-100 transition">
-            <Camera size={24} />
-          </div>
-        </button>
-        <input ref={bannerInput} type="file" accept="image/*" className="hidden" onChange={pickBanner} />
+        </label>
+        {user.isPremium ? (
+          <>
+            <button
+              onClick={() => bannerInput.current?.click()}
+              className="relative w-full h-28 md:h-32 rounded-2xl overflow-hidden group glass"
+            >
+              {bannerUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={bannerUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div
+                  className="h-full w-full grid place-items-center text-white/40"
+                  style={{ background: `linear-gradient(120deg, ${nameColor}, var(--accent-tertiary), var(--accent-secondary))` }}
+                >
+                  <span className="flex items-center gap-1.5 text-sm font-medium">
+                    <ImageIcon size={16} /> Загрузить баннер
+                  </span>
+                </div>
+              )}
+              <div className="absolute inset-0 grid place-items-center bg-black/50 opacity-0 group-hover:opacity-100 transition">
+                <Camera size={24} />
+              </div>
+            </button>
+            <input ref={bannerInput} type="file" accept="image/*" className="hidden" onChange={pickBanner} />
+          </>
+        ) : (
+          <Link href="/store/premium" className="block relative w-full h-28 md:h-32 rounded-2xl overflow-hidden glass grid place-items-center transition hover:brightness-125">
+            <div className="flex flex-col items-center gap-1 text-white/40">
+              <Lock size={20} />
+              <span className="text-xs">Баннер доступен с Premium</span>
+            </div>
+          </Link>
+        )}
       </div>
 
       {/* Avatar + banner */}
@@ -249,8 +268,40 @@ function ProfileSection() {
         <div className="text-right text-xs text-white/30 mt-1">{bio.length}/160</div>
       </FieldBlock>
 
-      {/* Custom ID */}
+      {/* Custom ID — Premium only */}
       <FieldBlock label="Кастомный ID" icon={<AtSign size={13} className="text-neon-purple" />}>
+        {!user.isPremium ? (
+          <div className="rounded-2xl glass p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-white/70">Кастомный @username доступен с Premium</p>
+              <p className="text-xs text-white/40 mt-0.5">Без Premium используется числовой ID</p>
+            </div>
+            <Link href="/store/premium" className="btn-glow px-4 py-2 text-xs shrink-0" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>
+              <Crown size={12} className="inline" /> Premium
+            </Link>
+          </div>
+        ) : (
+          <>
+        <div className="flex items-center gap-2">
+          <span className="text-white/40 text-sm">@</span>
+          <input
+            value={customId}
+            onChange={(e) => setCustomId(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+            maxLength={20}
+            placeholder="username"
+            className="ng-input flex-1"
+          />
+        </div>
+        <div className="flex items-center gap-2 mt-2 text-xs text-white/40">
+          <Hash size={12} />
+          {customId.trim() ? (
+            <span>Твой публичный ID: <b className="text-neon-purple">@{customId.trim()}</b></span>
+          ) : (
+            <span>Без кастомного ID ты отображаешься как <b className="text-white/60">#{ngIdDisplay}</b></span>
+          )}
+        </div>
+          </>
+        )}
         <div className="flex items-center gap-2">
           <span className="text-white/40 text-sm">@</span>
           <input

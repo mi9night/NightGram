@@ -1,15 +1,16 @@
 "use client";
 
 // =============================================================================
-//  NightGram Web — Night Store (marketplace)
+//  NightGram Web — Night Store (marketplace for items)
 // =============================================================================
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Crown, Plus, ExternalLink, CreditCard, Wallet } from "lucide-react";
+import { Sparkles, Plus } from "lucide-react";
+import Link from "next/link";
 import type { StoreCategory, StoreItem } from "@/types";
 import { StoreCard } from "@/components/store/StoreCard";
-import { CoinsBadge, PremiumBadge } from "@/components/shared/Badges";
+import { CoinsBadge } from "@/components/shared/Badges";
 import { AuroraBackground } from "@/components/shared/AuroraBackground";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
@@ -36,7 +37,7 @@ export default function StorePage() {
     api.getStoreItems().catch(() => []).then((data) => {
       if (!active) return;
       const owned = new Set(user?.ownedItems ?? []);
-      setItems(data.map((d) => ({ ...d, owned: owned.has(d.id) })));
+      setItems((data || []).map((d) => ({ ...d, owned: owned.has(d.id) })));
       setLoading(false);
     });
     return () => { active = false; };
@@ -65,14 +66,37 @@ export default function StorePage() {
         {user && (
           <div className="flex items-center gap-2">
             <CoinsBadge amount={user.nightCoins} />
-            <TopUpButton />
+            <Link href="/store/premium?tab=coins" className="btn-ghost px-3 py-2 rounded-xl text-sm flex items-center gap-1.5">
+              <Plus size={14} /> Пополнить
+            </Link>
           </div>
         )}
       </motion.div>
 
-      <PremiumBanner />
+      {/* Quick links to Premium / Coins */}
+      <div className="grid sm:grid-cols-2 gap-3 mb-6">
+        <Link href="/store/premium?tab=premium" className="group relative overflow-hidden rounded-2xl glass-strong p-4 flex items-center gap-3 transition hover:scale-[1.02]">
+          <div className="h-11 w-11 rounded-xl grid place-items-center shrink-0" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>
+            <Sparkles size={20} className="text-white" />
+          </div>
+          <div className="flex-1">
+            <div className="font-bold text-sm" style={{ color: "#fbbf24" }}>Premium от 230₽</div>
+            <div className="text-xs text-white/45">Темы, рамки, glow и многое другое</div>
+          </div>
+        </Link>
+        <Link href="/store/premium?tab=coins" className="group relative overflow-hidden rounded-2xl glass-strong p-4 flex items-center gap-3 transition hover:scale-[1.02]">
+          <div className="h-11 w-11 rounded-xl grid place-items-center shrink-0" style={{ background: "rgba(251,191,36,0.12)" }}>
+            <Sparkles size={20} className="fill-neon-gold text-neon-gold" />
+          </div>
+          <div className="flex-1">
+            <div className="font-bold text-sm text-neon-gold">NightCoins от 70₽</div>
+            <div className="text-xs text-white/45">Внутренняя валюта для покупок</div>
+          </div>
+        </Link>
+      </div>
 
-      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mt-8 mb-5">
+      {/* Category filter */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mb-5">
         {CATEGORIES.map((c) => (
           <button
             key={c.id}
@@ -89,6 +113,7 @@ export default function StorePage() {
         ))}
       </div>
 
+      {/* Grid */}
       {loading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -101,191 +126,17 @@ export default function StorePage() {
             </div>
           ))}
         </div>
+      ) : filtered.length === 0 ? (
+        <div className="text-center py-16 text-white/40">
+          <Sparkles size={32} className="mx-auto mb-3" />
+          <p>Товары скоро появятся</p>
+        </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((item, i) => (
             <StoreCard key={item.id} item={item} index={i} />
           ))}
         </div>
-      )}
-    </div>
-  );
-}
-
-// =============================================================================
-//  PremiumBanner — два способа поддержать проект
-// =============================================================================
-
-function PremiumBanner() {
-  const { user, updateUser } = useAuth();
-
-  if (user?.isPremium) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="gradient-border rounded-4xl glass-strong p-6 flex items-center gap-4"
-        style={{ boxShadow: "0 0 24px rgba(251,191,36,0.3)" }}
-      >
-        <div className="h-14 w-14 rounded-2xl grid place-items-center shrink-0" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>
-          <Crown size={26} className="text-white" />
-        </div>
-        <div className="flex-1">
-          <h3 className="font-display font-bold text-lg flex items-center gap-2" style={{ color: "#fbbf24" }}>
-            <Crown size={18} className="fill-[#fbbf24]" /> Активирован
-          </h3>
-          <p className="text-sm text-white/55">Все Premium-возможности разблокированы на всех устройствах.</p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <PremiumBadge />
-
-        </div>
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden gradient-border rounded-4xl glass-strong p-6 md:p-8"
-      style={{ boxShadow: "0 0 30px rgba(251,191,36,0.25)" }}
-    >
-      <div className="relative z-10">
-        {/* Title */}
-        <div className="text-center mb-6">
-          <div className="inline-flex items-center gap-2 rounded-full px-3 py-1 mb-3"
-               style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.35)" }}>
-            <Crown size={14} className="text-neon-gold" />
-            <span className="text-xs font-semibold" style={{ color: "#fbbf24" }}>Premium</span>
-          </div>
-          <h2 className="font-display font-bold text-2xl md:text-3xl">
-            Поддержи NightGram <span style={{ color: "#fbbf24" }}>Premium</span>
-          </h2>
-          <p className="text-white/60 mt-2 text-sm max-w-md mx-auto">
-            Эксклюзивные темы, рамки, glow-эффекты, 2× NightCoins и поддержка проекта. Выбери удобный способ оплаты:
-          </p>
-        </div>
-
-        {/* Donation methods */}
-        <div className="grid sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
-          {/* Method 1 — DonationAlerts (international + RF) */}
-          <a
-            href="https://dalink.to/mi9night"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group relative overflow-hidden rounded-2xl glass-strong p-5 transition hover:scale-[1.02] hover:border-neon-gold/40"
-          >
-            <div className="flex items-start gap-3">
-              <div className="h-11 w-11 rounded-xl grid place-items-center shrink-0" style={{ background: "rgba(251,191,36,0.12)" }}>
-                <CreditCard size={20} style={{ color: "#fbbf24" }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm">DonationAlerts</div>
-                <div className="text-xs text-white/45 mt-1">Зарубежные карты + карты РФ</div>
-                <div className="text-[11px] text-white/35 mt-2 flex items-center gap-1">
-                  <ExternalLink size={11} /> dalink.to/mi9night
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 btn-glow w-full py-2.5 text-sm text-center" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>
-              Поддержать
-            </div>
-          </a>
-
-          {/* Method 2 — Donatex (RF cards backup) */}
-          <a
-            href="https://donatex.gg/donate/mi9night"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group relative overflow-hidden rounded-2xl glass-strong p-5 transition hover:scale-[1.02] hover:border-neon-purple/40"
-          >
-            <div className="flex items-start gap-3">
-              <div className="h-11 w-11 rounded-xl grid place-items-center shrink-0" style={{ background: "rgba(168,85,247,0.12)" }}>
-                <Wallet size={20} className="text-neon-purple" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm">Donatex</div>
-                <div className="text-xs text-white/45 mt-1">Карты РФ (если первый не работает)</div>
-                <div className="text-[11px] text-white/35 mt-2 flex items-center gap-1">
-                  <ExternalLink size={11} /> donatex.gg/donate/mi9night
-                </div>
-              </div>
-            </div>
-            <div className="mt-4 btn-ghost w-full py-2.5 text-sm text-center">
-              Поддержать
-            </div>
-          </a>
-        </div>
-
-        {/* Note */}
-        <p className="text-center text-[11px] text-white/35 mt-4 max-w-md mx-auto">
-          После оплаты напишите в поддержку с чеком — мы активируем Premium вручную. В будущем оплата будет автоматической.
-        </p>
-
-
-      </div>
-    </motion.div>
-  );
-}
-
-// =============================================================================
-//  TopUpButton — NightCoins purchase (links to donation)
-// =============================================================================
-
-function TopUpButton() {
-  const { updateUser, user, isDemo } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
-
-  const packs = [
-    { coins: 500, price: "$0.99" },
-    { coins: 1200, price: "$1.99", best: true },
-    { coins: 2500, price: "$3.99" },
-  ];
-
-  async function topUp(coins: number) {
-    if (isDemo) {
-      updateUser({ nightCoins: (user?.nightCoins ?? 0) + coins });
-      setOpen(false);
-      return;
-    }
-    // Real: redirect to donation page
-    window.open("https://dalink.to/mi9night", "_blank");
-    setOpen(false);
-  }
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="btn-ghost px-3 py-2 rounded-xl text-sm flex items-center gap-1.5"
-      >
-        <Plus size={14} /> Пополнить
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <motion.div
-            initial={{ opacity: 0, y: -8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="absolute right-0 top-12 z-50 w-56 ng-solid rounded-2xl p-2 shadow-glow-lg"
-          >
-            {packs.map((p) => (
-              <button
-                key={p.coins}
-                onClick={() => topUp(p.coins)}
-                className="w-full flex items-center justify-between rounded-xl px-3 py-2.5 hover:bg-neon-purple/10 transition text-sm"
-              >
-                <span className="flex items-center gap-1.5 text-neon-gold font-semibold">
-                  <Sparkles size={13} className="fill-neon-gold" /> {formatCoins(p.coins)}
-                </span>
-                <span className="text-white/70">{loading ? "…" : p.price}</span>
-              </button>
-            ))}
-            <p className="text-[10px] text-white/35 text-center pt-2">Оплата через DonationAlerts / Donatex</p>
-          </motion.div>
-        </>
       )}
     </div>
   );

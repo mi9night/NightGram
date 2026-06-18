@@ -75,7 +75,7 @@ export function PaymentModal({
               <div className="flex items-center gap-2 rounded-xl p-3 mb-2" style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)" }}>
                 <AlertCircle size={16} className="text-red-400 shrink-0" />
                 <span className="text-xs text-red-300">
-                  Укажите ваш ID в комментарии к оплате, иначе покупка будет проигнорирована!
+                  Укажите ваш айди и цену в комментарии к оплате, иначе покупка будет проигнорирована!
                 </span>
               </div>
 
