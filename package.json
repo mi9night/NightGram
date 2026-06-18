@@ -11,17 +11,17 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "next": "14.2.35",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "framer-motion": "11.3.8",
-    "socket.io-client": "4.7.5",
     "@stripe/stripe-js": "4.1.0",
     "@supabase/supabase-js": "2.45.0",
     "clsx": "2.1.1",
-    "tailwind-merge": "2.4.0",
+    "framer-motion": "11.3.8",
     "jwt-decode": "4.0.0",
     "lucide-react": "0.414.0",
+    "next": "14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "socket.io-client": "^4.8.3",
+    "tailwind-merge": "2.4.0",
     "zustand": "4.5.4"
   },
   "devDependencies": {
