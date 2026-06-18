@@ -1,8 +1,9 @@
+# Force Node.js 20+ for Railway/Nixpacks
 [phases.install]
-cmds = ["npm install --omit=dev"]
+cmds = ["npm ci --omit=dev || npm install --omit=dev"]
 
-[phases.build]
-cmds = ["echo 'Build complete'"]
+[phases.setup]
+nixpkgs = ["nodejs_20"]
 
 [start]
 cmd = "node src/server.js"
