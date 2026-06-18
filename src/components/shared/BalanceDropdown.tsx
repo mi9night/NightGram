@@ -118,13 +118,11 @@ export function BalanceDropdown() {
             {/* Quick links */}
             <div className="p-2">
               <Link
-                href="/store/premium"
+                href="/store/premium?tab=premium"
                 onClick={() => setOpen(false)}
-                className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm hover:bg-white/5 transition"
+                className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm hover:bg-white/5 transition text-white/70"
               >
-                <span className="flex items-center gap-2 text-white/70">
-                  <Sparkles size={14} /> Все способы оплаты
-                </span>
+                <Crown size={14} /> Купить Premium
               </Link>
             </div>
           </motion.div>

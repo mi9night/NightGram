@@ -87,6 +87,9 @@ export default function FeedPage() {
         </button>
       </motion.div>
 
+      {/* Create post button — full width, visible */}
+      <CreatePost onPosted={() => window.location.reload()} />
+
       <div className="space-y-5 mt-5">
         {loading ? (
           <FeedSkeletons count={3} />
@@ -121,8 +124,6 @@ export default function FeedPage() {
           </motion.div>
         )}
       </div>
-
-      <CreatePost onPosted={() => window.location.reload()} />
     </div>
   );
 }

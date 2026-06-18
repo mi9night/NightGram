@@ -6,15 +6,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Plus } from "lucide-react";
+import { Sparkles, Crown } from "lucide-react";
 import Link from "next/link";
 import type { StoreCategory, StoreItem } from "@/types";
 import { StoreCard } from "@/components/store/StoreCard";
-import { CoinsBadge } from "@/components/shared/Badges";
 import { AuroraBackground } from "@/components/shared/AuroraBackground";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
-import { cn, formatCoins } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 const CATEGORIES: { id: StoreCategory | "all"; label: string; emoji: string }[] = [
   { id: "all", label: "Всё", emoji: "✨" },
@@ -55,29 +54,19 @@ export default function StorePage() {
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
+        className="mb-6"
       >
-        <div>
-          <h1 className="font-display font-bold text-3xl flex items-center gap-2">
-            Night Store <Sparkles size={22} className="text-neon-purple" />
-          </h1>
-          <p className="text-sm text-white/45">Прокачай свой профиль</p>
-        </div>
-        {user && (
-          <div className="flex items-center gap-2">
-            <CoinsBadge amount={user.nightCoins} />
-            <Link href="/store/premium?tab=coins" className="btn-ghost px-3 py-2 rounded-xl text-sm flex items-center gap-1.5">
-              <Plus size={14} /> Пополнить
-            </Link>
-          </div>
-        )}
+        <h1 className="font-display font-bold text-3xl flex items-center gap-2">
+          Night Store <Sparkles size={22} className="text-neon-purple" />
+        </h1>
+        <p className="text-sm text-white/45">Прокачай свой профиль</p>
       </motion.div>
 
       {/* Quick links to Premium / Coins */}
       <div className="grid sm:grid-cols-2 gap-3 mb-6">
         <Link href="/store/premium?tab=premium" className="group relative overflow-hidden rounded-2xl glass-strong p-4 flex items-center gap-3 transition hover:scale-[1.02]">
           <div className="h-11 w-11 rounded-xl grid place-items-center shrink-0" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>
-            <Sparkles size={20} className="text-white" />
+            <Crown size={20} className="text-white" />
           </div>
           <div className="flex-1">
             <div className="font-bold text-sm" style={{ color: "#fbbf24" }}>Premium от 230₽</div>

@@ -44,7 +44,7 @@ const BENEFITS: { icon: LucideIcon; title: string; desc: string; color: string }
   { icon: Star, title: "15 цветов имени", desc: "Выбери любой цвет для своего ника — от фиолетового до золотого.", color: "#fbbf24" },
   { icon: Zap, title: "2× NightCoins", desc: "Получай вдвое больше звёзд при каждой покупке в Night Store.", color: "#22d3ee" },
   { icon: Crown, title: "Бейдж Premium", desc: "Особый значок короны рядом с твоим ником — все увидят твой статус.", color: "#f59e0b" },
-  { icon: Shield, title: "Кастомный ID", desc: "Установи уникальный @username вместо стандартного числового ID.", color: "#10b981" },
+  { icon: Shield, title: "Увеличенные файлы", desc: "Загружай файлы до 250 МБ вместо стандартных 50 МБ в постах и сообщениях.", color: "#10b981" },
   { icon: Gift, title: "Ранний доступ", desc: "Первым получай новые функции, темы и эксклюзивные дропы.", color: "#6366f1" },
 ];
 

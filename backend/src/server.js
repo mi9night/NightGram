@@ -1,7 +1,5 @@
 // =============================================================================
 //  NightGram — Backend entry (Express + Socket.io + Stripe + Supabase)
-//  Deploy on Railway. Shared by the Web client and the mobile app.
-//  Robust against missing env vars — starts even without Supabase configured.
 // =============================================================================
 
 require("dotenv").config();
@@ -19,9 +17,9 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json());
+app.use(express.json({ limit: "50mb" })); // allow large payloads
 
-// --- Root health check (Railway probes "/" by default) ---
+// --- Root health check ---
 app.get("/", (_req, res) => {
   res.json({
     ok: true,
@@ -36,7 +34,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true, service: "nightgram", ts: Date.now() });
 });
 
-// --- Stripe webhook (raw body, BEFORE json middleware if placed after) ---
+// --- Stripe webhook ---
 let stripeWebhookHandler = null;
 try {
   stripeWebhookHandler = require("./routes/stripe").stripeWebhook;
@@ -47,29 +45,34 @@ if (stripeWebhookHandler) {
   app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhookHandler);
 }
 
-// --- Routes (lazy-loaded, won't crash if Supabase is missing) ---
-function loadRoutes() {
+// --- Auth routes (public) ---
+const { authRouter } = require("./routes/auth");
+app.use("/api/auth", authRouter);
+
+// --- Auth middleware ---
+const { authMiddleware } = require("./middleware/auth");
+
+// --- Protected routes — each loaded independently so one failure doesn't break all ---
+function tryMount(path, middleware, routerFn, name) {
   try {
-    app.use("/api/auth", require("./routes/auth").authRouter);
-    app.use("/api/feed", require("./middleware/auth").authMiddleware, require("./routes/feed").feedRouter);
-    app.use("/api/conversations", require("./middleware/auth").authMiddleware, require("./routes/conversations").conversationsRouter);
-    app.use("/api/store", require("./middleware/auth").authMiddleware, require("./routes/store").storeRouter);
-    app.use("/api/users", require("./middleware/auth").authMiddleware, require("./routes/users").usersRouter);
-    app.use("/api/premium", require("./middleware/auth").authMiddleware, require("./routes/premium").premiumRouter);
-    app.use("/api/posts", require("./middleware/auth").authMiddleware, require("./routes/posts"));
-    console.log("[NightGram] All API routes loaded ✓");
+    app.use(path, middleware, routerFn);
+    console.log(`[NightGram] ${name} routes loaded ✓`);
   } catch (e) {
-    console.error("[NightGram] Failed to load routes:", e.message);
-    // Graceful fallback: return 503 for all API routes
-    app.use("/api/*", (_req, res) => {
-      res.status(503).json({ error: "Service partially unavailable", detail: e.message });
+    console.error(`[NightGram] ${name} routes FAILED:`, e.message);
+    app.use(path, middleware, (_req, res) => {
+      res.status(503).json({ error: `${name} unavailable`, detail: e.message });
     });
   }
 }
 
-loadRoutes();
+tryMount("/api/feed", authMiddleware, require("./routes/feed").feedRouter, "Feed");
+tryMount("/api/conversations", authMiddleware, require("./routes/conversations").conversationsRouter, "Conversations");
+tryMount("/api/store", authMiddleware, require("./routes/store").storeRouter, "Store");
+tryMount("/api/users", authMiddleware, require("./routes/users").usersRouter, "Users");
+tryMount("/api/premium", authMiddleware, require("./routes/premium").premiumRouter, "Premium");
+tryMount("/api/posts", authMiddleware, require("./routes/posts"), "Posts");
 
-// --- Socket.io (optional, won't crash if missing) ---
+// --- Socket.io ---
 let io = null;
 try {
   const { Server } = require("socket.io");
@@ -88,7 +91,6 @@ try {
 }
 
 // --- Start server ---
-// Railway injects PORT automatically. Bind to 0.0.0.0 (required by Railway).
 const PORT = process.env.PORT || 4000;
 const HOST = "0.0.0.0";
 
@@ -96,7 +98,6 @@ server.listen(PORT, HOST, () => {
   console.log(`✦ NightGram backend listening on ${HOST}:${PORT}`);
 });
 
-// --- Global error handlers ---
 process.on("uncaughtException", (err) => {
   console.error("[NightGram] Uncaught Exception:", err.message);
 });

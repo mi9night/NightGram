@@ -113,12 +113,8 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
         </button>
       </div>
 
-      {/* Text */}
-      {post.text && (
-        <p className="px-4 pb-3 text-[15px] text-white/85 leading-relaxed whitespace-pre-wrap">
-          {post.text}
-        </p>
-      )}
+      {/* Text — with "show more" for long posts */}
+      {post.text && <PostText text={post.text} />}
 
       {/* Media */}
       {post.media.length > 0 && (
@@ -274,6 +270,31 @@ function VideoMedia({ src, poster }: { src: string; poster?: string }) {
           <span className="grid place-items-center h-14 w-14 rounded-full btn-glow">
             <Play size={24} className="fill-white ml-1" />
           </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+// ---- PostText — collapsible long text (show more / show less) ----
+const TEXT_COLLAPSE_THRESHOLD = 200; // chars
+
+function PostText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = text.length > TEXT_COLLAPSE_THRESHOLD;
+  const displayText = !expanded && isLong ? text.slice(0, TEXT_COLLAPSE_THRESHOLD).trimEnd() + "\u2026" : text;
+
+  return (
+    <div className="px-4 pb-3">
+      <p className="text-[15px] text-white/85 leading-relaxed whitespace-pre-wrap break-words">
+        {displayText}
+      </p>
+      {isLong && (
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1.5 text-xs text-neon-purple hover:underline flex items-center gap-1 transition"
+        >
+          {expanded ? "\u0421\u0432\u0435\u0440\u043d\u0443\u0442\u044c \u2191" : "\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0431\u043e\u043b\u044c\u0448\u0435 \u2193"}
         </button>
       )}
     </div>
