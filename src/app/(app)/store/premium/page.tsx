@@ -13,11 +13,11 @@ import { PaymentModal, type PaymentItem } from "@/components/store/PaymentModal"
 import { cn } from "@/lib/utils";
 
 // ---- Premium plans ----
-interface PremiumPlan { id: string; duration: string; price: number; perMonth: number; discount: number; months: number; best?: boolean }
+interface PremiumPlan { id: string; duration: string; price: number; perMonth: number; discount: number; months: number; fullPrice?: number; best?: boolean }
 const PREMIUM_PLANS: PremiumPlan[] = [
   { id: "1month", duration: "1 месяц", price: 230, perMonth: 230, discount: 0, months: 1 },
-  { id: "1year", duration: "1 год", price: 1390, perMonth: 116, discount: 54, months: 12, best: true },
-  { id: "2year", duration: "2 года", price: 2490, perMonth: 104, discount: 58, months: 24 },
+  { id: "1year", duration: "1 год", price: 1390, perMonth: 116, discount: 54, months: 12, fullPrice: 3000, best: true },
+  { id: "2year", duration: "2 года", price: 2490, perMonth: 104, discount: 55, months: 24, fullPrice: 5500 },
 ];
 
 // ---- NightCoins packs ----
@@ -145,9 +145,9 @@ export default function PremiumPage({ searchParams }: { searchParams?: { tab?: s
                   </div>
                 )}
 
-                {plan.discount > 0 && (
+                {plan.discount > 0 && plan.fullPrice && (
                   <div className="text-[11px] text-white/30 mt-1 line-through">
-                    {plan.perMonth * plan.months}₽
+                    {plan.fullPrice}₽
                   </div>
                 )}
 
