@@ -1,0 +1,255 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   NightGram Web — Global theme (driven by AppearanceContext CSS variables)
+   Two axes: THEME (bg + surfaces + text) · ACCENT (buttons, glow, gradients)
+   ========================================================================== */
+
+:root {
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-display: "Sora", "Inter", system-ui, sans-serif;
+
+  /* Defaults — overridden live by AppearanceContext */
+  --bg-color: #03020a;
+  --bg-image: radial-gradient(circle at 15% 18%, rgba(139,92,246,0.28), transparent 42%), radial-gradient(circle at 85% 12%, rgba(236,72,153,0.18), transparent 40%), radial-gradient(circle at 50% 95%, rgba(99,102,241,0.22), transparent 48%);
+  --glass-r: 30; --glass-g: 23; --glass-b: 64;
+  --glass-opacity: 0.45;
+  --c-text: #e8e6f5;
+  --c-text-muted: rgba(232,230,245,0.55);
+  --accent-main: #a855f7;
+  --accent-main-rgb: 168 85 247;
+  --accent-secondary: #8b5cf6;
+  --accent-secondary-rgb: 139 92 246;
+  --accent-tertiary: #ec4899;
+  --accent-tertiary-rgb: 236 72 153;
+  --accent-pink: #ec4899;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  color: var(--c-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+html {
+  background-color: var(--bg-color);
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  background-image: var(--bg-image);
+  background-attachment: fixed;
+}
+
+/* Subtle dotted texture overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.4;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent-main) 35%, transparent);
+  color: #fff;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6a5da4, #2e2354);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--accent-main), #6a5da4);
+  background-clip: padding-box;
+}
+
+/* ==========================================================================
+   Component utilities
+   ========================================================================== */
+@layer components {
+  /* Glass surfaces use the theme's RGB tint + opacity */
+  .glass {
+    background: rgba(var(--glass-r), var(--glass-g), var(--glass-b), var(--glass-opacity));
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid color-mix(in srgb, var(--accent-main) 18%, transparent);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-strong {
+    background: rgba(var(--glass-r), var(--glass-g), var(--glass-b), calc(var(--glass-opacity) + 0.2));
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid color-mix(in srgb, var(--accent-main) 25%, transparent);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .btn-glow {
+    position: relative;
+    background: linear-gradient(135deg, var(--accent-main), var(--accent-secondary) 55%, var(--accent-main));
+    color: #fff;
+    font-weight: 600;
+    border-radius: 16px;
+    box-shadow: 0 0 20px color-mix(in srgb, var(--accent-main) 50%, transparent),
+      0 0 40px color-mix(in srgb, var(--accent-main) 20%, transparent);
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, filter 0.25s ease;
+  }
+  .btn-glow:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--accent-main) 70%, transparent),
+      0 0 60px color-mix(in srgb, var(--accent-secondary) 40%, transparent);
+    filter: brightness(1.08);
+  }
+  .btn-glow:active { transform: translateY(0) scale(0.99); }
+
+  .btn-ghost {
+    background: color-mix(in srgb, var(--accent-main) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-main) 25%, transparent);
+    color: var(--c-text-muted);
+    border-radius: 16px;
+    transition: all 0.25s ease;
+  }
+  .btn-ghost:hover {
+    background: color-mix(in srgb, var(--accent-main) 16%, transparent);
+    border-color: color-mix(in srgb, var(--accent-main) 45%, transparent);
+    color: var(--c-text);
+  }
+
+  .text-gradient {
+    background: linear-gradient(120deg, color-mix(in srgb, var(--accent-main) 60%, white) 0%, var(--accent-main) 40%, var(--accent-pink) 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(120deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+
+  .gradient-border {
+    position: relative;
+    border-radius: 24px;
+    background: rgba(var(--glass-r), var(--glass-g), var(--glass-b), var(--glass-opacity));
+  }
+  .gradient-border::before {
+    content: "";
+    position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent-main) 60%, transparent), color-mix(in srgb, var(--accent-pink) 30%, transparent), color-mix(in srgb, var(--accent-secondary) 50%, transparent));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, rgba(46,35,84,0.4) 25%, rgba(74,58,127,0.6) 37%, rgba(46,35,84,0.4) 63%);
+    background-size: 1000px 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+  .scrollbar-hide::-webkit-scrollbar { display: none; }
+
+  /* Solid surface — opaque, reacts to the selected THEME */
+  .ng-solid {
+    background: rgb(var(--glass-r) var(--glass-g) var(--glass-b));
+    border: 1px solid rgb(var(--accent-main-rgb) / 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Divider — accent-derived color, works with border-b AND border-t */
+  .ng-divider {
+    border-color: rgb(var(--accent-main-rgb) / 0.14) !important;
+  }
+
+  /* Notification items inside a dropdown (transparent, hover accent-reactive) */
+  .ng-notif-item {
+    background: transparent;
+    transition: background 0.15s ease;
+  }
+  .ng-notif-item:hover {
+    background: rgb(var(--accent-main-rgb) / 0.12);
+  }
+  .ng-notif-item.is-unread {
+    background: rgb(var(--accent-main-rgb) / 0.07);
+  }
+  .ng-notif-item.is-unread:hover {
+    background: rgb(var(--accent-main-rgb) / 0.15);
+  }
+
+  /* Notification cards on the page — SOLID (opaque), theme + accent reactive */
+  .ng-notif-card {
+    background: rgb(var(--glass-r) var(--glass-g) var(--glass-b));
+    border: 1px solid rgb(var(--accent-main-rgb) / 0.2);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .ng-notif-card:hover {
+    border-color: rgb(var(--accent-main-rgb) / 0.5);
+    box-shadow: 0 0 18px rgb(var(--accent-main-rgb) / 0.15);
+  }
+  .ng-notif-card.is-unread {
+    border-color: rgb(var(--accent-main-rgb) / 0.4);
+    box-shadow: 0 0 14px rgb(var(--accent-main-rgb) / 0.1);
+  }
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+html.ng-reduced-motion *, html.ng-reduced-motion *::before, html.ng-reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* ==========================================================================
+   LIGHT THEME — override the common text utilities so white text stays
+   readable on light surfaces. Scoped to html.ng-light.
+   ========================================================================== */
+html.ng-light body::before { opacity: 0.25; }
+html.ng-light ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #c7c9e0, #9ea1bf);
+}
+html.ng-light .text-white\/40 { color: rgba(26,21,48,0.45) !important; }
+html.ng-light .text-white\/45 { color: rgba(26,21,48,0.5) !important; }
+html.ng-light .text-white\/50 { color: rgba(26,21,48,0.55) !important; }
+html.ng-light .text-white\/55 { color: rgba(26,21,48,0.6) !important; }
+html.ng-light .text-white\/60 { color: rgba(26,21,48,0.62) !important; }
+html.ng-light .text-white\/65 { color: rgba(26,21,48,0.65) !important; }
+html.ng-light .text-white\/70 { color: rgba(26,21,48,0.7) !important; }
+html.ng-light .text-white\/80 { color: rgba(26,21,48,0.8) !important; }
+html.ng-light .text-white\/85 { color: rgba(26,21,48,0.85) !important; }
+html.ng-light .text-white\/90 { color: rgba(26,21,48,0.9) !important; }
+html.ng-light .text-white { color: #1a1530 !important; }
+html.ng-light .border-white\/5 { border-color: rgba(26,21,48,0.1) !important; }
+html.ng-light .bg-midnight-900,
+html.ng-light .bg-midnight-950,
+html.ng-light .bg-midnight-800,
+html.ng-light .bg-midnight-700 { background-color: rgba(255,255,255,0.5) !important; }

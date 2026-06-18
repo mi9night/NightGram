@@ -1,0 +1,240 @@
+"use client";
+
+// =============================================================================
+//  AppNav — top navigation bar shown on all authenticated pages.
+// =============================================================================
+
+import { useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  Home,
+  MessageCircle,
+  ShoppingBag,
+  User as UserIcon,
+  LogOut,
+  Menu,
+  X,
+  Sparkles,
+  Settings,
+} from "lucide-react";
+import { NightGramWordmark } from "@/components/shared/NightGramLogo";
+import { CoinsBadge, PremiumBadge } from "@/components/shared/Badges";
+import { GlowAvatar } from "@/components/shared/GlowAvatar";
+import { NotificationBell } from "@/components/shared/NotificationBell";
+import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
+
+const LINKS = [
+  { href: "/feed", label: "Лента", icon: Home },
+  { href: "/messages", label: "Мессенджер", icon: MessageCircle },
+  { href: "/store", label: "Night Store", icon: ShoppingBag },
+  { href: "/profile/you", label: "Профиль", icon: UserIcon },
+];
+
+export function AppNav() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const { user, logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  if (!user) return null;
+
+  const profileHref = `/profile/${user.username}`;
+
+  async function handleLogout() {
+    await logout();
+    router.replace("/");
+  }
+
+  return (
+    <>
+      {/* Desktop top bar */}
+      <motion.header
+        initial={false}
+        className="fixed top-0 inset-x-0 z-50"
+      >
+        <div className="max-w-7xl mx-auto px-4 pt-3">
+          <div className="glass-strong rounded-2xl px-4 py-2.5 flex items-center justify-between relative">
+            <Link href="/feed" className="shrink-0">
+              <NightGramWordmark size={30} />
+            </Link>
+
+            {/* Center nav (desktop) — absolutely centered in the bar */}
+            <nav className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+              {LINKS.map((l) => {
+                const active =
+                  l.href === "/feed"
+                    ? pathname === "/feed"
+                    : pathname.startsWith(l.href.split("/")[1] ? `/${l.href.split("/")[1]}` : l.href);
+                const Icon = l.icon;
+                return (
+                  <Link
+                    key={l.href}
+                    href={l.href === "/profile/you" ? profileHref : l.href}
+                    className={cn(
+                      "relative flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm transition",
+                      active ? "text-white" : "text-white/55 hover:text-white",
+                    )}
+                  >
+                    {active && (
+                      <span
+                        className="absolute inset-0 rounded-xl"
+                        style={{
+                          background: "color-mix(in srgb, var(--accent-main) 15%, transparent)",
+                          border: "1px solid color-mix(in srgb, var(--accent-main) 35%, transparent)",
+                          boxShadow: "0 0 16px color-mix(in srgb, var(--accent-main) 25%, transparent)",
+                        }}
+                      />
+                    )}
+                    <Icon size={17} className="relative z-10" />
+                    <span className="relative z-10 hidden lg:inline">{l.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            {/* Right — coins + notifications + settings + avatar */}
+            <div className="flex items-center gap-2">
+              <Link href="/store" className="hidden sm:block">
+                <CoinsBadge amount={user.nightCoins} />
+              </Link>
+              {user.isPremium && <PremiumBadge small />}
+              <NotificationBell />
+              <Link
+                href="/settings"
+                className={cn(
+                  "hidden md:grid place-items-center h-9 w-9 rounded-xl transition",
+                  pathname === "/settings"
+                    ? "bg-neon-purple/15 text-white border border-neon-purple/40"
+                    : "glass text-white/60 hover:text-neon-purple",
+                )}
+                title="Настройки"
+              >
+                <Settings size={16} />
+              </Link>
+              <Link href={profileHref} className="shrink-0">
+                <GlowAvatar
+                  src={user.avatarUrl}
+                  alt={user.username}
+                  size={38}
+                  glow={user.glowEffect ?? undefined}
+                  frame={user.avatarFrame ?? undefined}
+                />
+              </Link>
+              <button
+                onClick={handleLogout}
+                className="hidden md:grid place-items-center h-9 w-9 rounded-xl glass text-white/60 hover:text-red-400 transition"
+                title="Выйти"
+              >
+                <LogOut size={16} />
+              </button>
+              <button
+                onClick={() => setMobileOpen(true)}
+                className="md:hidden grid place-items-center h-9 w-9 rounded-xl glass"
+              >
+                <Menu size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.header>
+
+      {/* Mobile bottom bar */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-50 glass-strong border-t border-white/5">
+        <div className="flex justify-around py-2">
+          {LINKS.map((l) => {
+            const Icon = l.icon;
+            const active =
+              l.href === "/feed"
+                ? pathname === "/feed"
+                : pathname.startsWith(l.href.split("/")[1] ? `/${l.href.split("/")[1]}` : l.href);
+            return (
+              <Link
+                key={l.href}
+                href={l.href === "/profile/you" ? profileHref : l.href}
+                className={cn(
+                  "flex flex-col items-center gap-0.5 px-3 py-1 text-[10px] transition",
+                  active ? "text-neon-purple" : "text-white/50",
+                )}
+              >
+                <Icon size={20} />
+                {l.label}
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* Mobile menu sheet */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[60] md:hidden"
+          >
+            <div className="absolute inset-0 bg-midnight-950/80 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+            <motion.div
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 260, damping: 28 }}
+              className="absolute right-0 top-0 bottom-0 w-72 glass-strong p-6 flex flex-col"
+            >
+              <div className="flex items-center justify-between mb-8">
+                <NightGramWordmark size={28} />
+                <button onClick={() => setMobileOpen(false)} className="grid place-items-center h-9 w-9 rounded-xl glass">
+                  <X size={18} />
+                </button>
+              </div>
+              {LINKS.map((l) => {
+                const Icon = l.icon;
+                return (
+                  <Link
+                    key={l.href}
+                    href={l.href === "/profile/you" ? profileHref : l.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 rounded-xl px-3 py-3 text-white/80 hover:bg-neon-purple/10 transition mb-1"
+                  >
+                    <Icon size={18} /> {l.label}
+                  </Link>
+                );
+              })}
+              <Link
+                href="/notifications"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-3 text-white/80 hover:bg-neon-purple/10 transition mb-1"
+              >
+                <Settings size={18} /> Уведомления
+              </Link>
+              <Link
+                href="/settings"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-3 rounded-xl px-3 py-3 text-white/80 hover:bg-neon-purple/10 transition mb-1"
+              >
+                <Settings size={18} /> Настройки
+              </Link>
+              <div className="mt-auto pt-4 border-t border-white/5">
+                <div className="flex items-center justify-between mb-3">
+                  <CoinsBadge amount={user.nightCoins} />
+                  <Link href="/store" onClick={() => setMobileOpen(false)} className="text-xs text-neon-purple flex items-center gap-1">
+                    <Sparkles size={12} /> Пополнить
+                  </Link>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-2 rounded-xl px-3 py-3 text-red-400 hover:bg-red-500/10 transition"
+                >
+                  <LogOut size={18} /> Выйти
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}

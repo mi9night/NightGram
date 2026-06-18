@@ -1,0 +1,21 @@
+{
+  "name": "NightGram",
+  "short_name": "NightGram",
+  "description": "The Future of Messaging & Social Connection",
+  "start_url": "/feed",
+  "display": "standalone",
+  "background_color": "#03020a",
+  "theme_color": "#03020a",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
