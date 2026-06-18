@@ -18,6 +18,7 @@ import {
   X,
   Sparkles,
   Settings,
+  Crown,
 } from "lucide-react";
 import { NightGramWordmark } from "@/components/shared/NightGramLogo";
 import { CoinsBadge, PremiumBadge } from "@/components/shared/Badges";
@@ -95,12 +96,20 @@ export function AppNav() {
               })}
             </nav>
 
-            {/* Right — coins + notifications + settings + avatar */}
+            {/* Right — coins + premium + notifications + settings + avatar */}
             <div className="flex items-center gap-2">
-              <Link href="/store" className="hidden sm:block">
+              <Link href="/store/premium" className="hidden sm:block">
                 <CoinsBadge amount={user.nightCoins} />
               </Link>
-              {user.isPremium && <PremiumBadge small />}
+              {user.isPremium ? (
+                <span className="inline-flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold" style={{ background: "rgba(251,191,36,0.12)", border: "1px solid rgba(251,191,36,0.45)", color: "#fbbf24" }}>
+                  <Crown size={14} className="fill-[#fbbf24]" /> Premium
+                </span>
+              ) : (
+                <Link href="/store/premium" className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-semibold glass hover:brightness-125 transition">
+                  <Crown size={14} /> Premium
+                </Link>
+              )}
               <NotificationBell />
               <Link
                 href="/settings"

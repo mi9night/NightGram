@@ -6,7 +6,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED = ["/feed", "/messages", "/store", "/profile", "/settings", "/notifications"];
+const PROTECTED = ["/feed", "/messages", "/store", "/profile", "/settings", "/notifications", "/premium"];
 const AUTH_PAGES = ["/login", "/register"];
 
 export function middleware(req: NextRequest) {

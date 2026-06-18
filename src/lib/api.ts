@@ -138,6 +138,14 @@ export const api = {
     await request(`/posts/${postId}/view`, { method: "POST" }).catch(() => {});
   },
 
+  async createPost(payload: {
+    text?: string;
+    media?: { type: "image" | "video"; url: string; thumbnailUrl?: string }[];
+    tags?: string[];
+  }): Promise<Post> {
+    return request(`/posts`, { method: "POST", body: JSON.stringify(payload) });
+  },
+
   // ---- Messenger ----------------------------------------------------------
 
   async getConversations(): Promise<Conversation[]> {

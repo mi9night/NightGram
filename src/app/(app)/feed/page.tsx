@@ -11,6 +11,7 @@ import { Loader2, Sparkles, Plus } from "lucide-react";
 import type { Post } from "@/types";
 import { PostCard } from "@/components/feed/PostCard";
 import { FeedSkeletons } from "@/components/feed/PostSkeleton";
+import { CreatePost } from "@/components/feed/CreatePost";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -120,6 +121,8 @@ export default function FeedPage() {
           </motion.div>
         )}
       </div>
+
+      <CreatePost onPosted={() => window.location.reload()} />
     </div>
   );
 }

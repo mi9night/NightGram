@@ -1,6 +1,44 @@
-// Posts routes — like, save, comment, view
+// Posts routes — create, like, save, comment, view
 const router = require("express").Router();
 const { supabase } = require("../lib/supabase");
+
+// POST /api/posts — create a new post
+router.post("/", async (req, res) => {
+  const { text, media = [], tags = [] } = req.body;
+  if (!text && (!media || media.length === 0)) {
+    return res.status(400).json({ error: "Post must have text or media" });
+  }
+
+  const { data: post, error: postError } = await supabase
+    .from("posts")
+    .insert({
+      author_user_id: req.userId,
+      text: text || null,
+      tags,
+    })
+    .select("*")
+    .single();
+  if (postError) return res.status(500).json({ error: postError.message });
+
+  if (media.length > 0) {
+    const mediaRows = media.map((m, i) => ({
+      post_id: post.id,
+      type: m.type || "image",
+      url: m.url,
+      thumbnail_url: m.thumbnailUrl || null,
+      position: i,
+    }));
+    await supabase.from("post_media").insert(mediaRows);
+  }
+
+  const { data: fullPost } = await supabase
+    .from("posts")
+    .select("*, author:users!posts_author_user_id_fkey(*)")
+    .eq("id", post.id)
+    .single();
+
+  res.status(201).json(fullPost || post);
+});
 
 // POST /api/posts/:id/like
 router.post("/:id/like", async (req, res) => {
@@ -19,7 +57,6 @@ router.post("/:id/like", async (req, res) => {
   }
 
   const { data: post } = await supabase.from("posts").select("likes_count").eq("id", id).single();
-  // Emit real-time (handled via socket in a fuller impl)
   res.json({ liked: !existing, likesCount: post?.likes_count ?? 0 });
 });
 
