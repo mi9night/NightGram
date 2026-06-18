@@ -15,7 +15,7 @@ import { NightGramWordmark } from "@/components/shared/NightGramLogo";
 import { useAuth } from "@/context/AuthContext";
 
 export default function RegisterPage() {
-  const { register, enterDemo } = useAuth();
+  const { register } = useAuth();
   const router = useRouter();
 
   const [form, setForm] = useState({ username: "", email: "", password: "" });
@@ -32,10 +32,8 @@ export default function RegisterPage() {
     try {
       await register(form.username, form.email, form.password);
       router.replace("/feed");
-    } catch {
-      // Backend offline — demo mode so the app stays explorable.
-      enterDemo();
-      router.replace("/feed");
+    } catch (err) {
+      setError("Не удалось зарегистрироваться. Попробуй другой username или email.");
     } finally {
       setLoading(false);
     }
@@ -114,15 +112,6 @@ export default function RegisterPage() {
             </Link>
           </p>
 
-          <button
-            onClick={() => {
-              enterDemo();
-              router.replace("/feed");
-            }}
-            className="mt-3 w-full text-xs text-white/40 hover:text-neon-purple transition"
-          >
-            Войти в демо-режим →
-          </button>
         </div>
       </motion.div>
 

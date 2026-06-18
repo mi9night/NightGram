@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-//  NightGram Web — Login page
+//  NightGram Web — Login page (real backend auth, no demo fallback)
 // =============================================================================
 
 import { Suspense, useState } from "react";
@@ -29,7 +29,7 @@ export default function LoginPage() {
 }
 
 function LoginContent() {
-  const { login, enterDemo } = useAuth();
+  const { login } = useAuth();
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next") || "/feed";
@@ -47,10 +47,7 @@ function LoginContent() {
       await login(email, password);
       router.replace(next);
     } catch {
-      // Backend offline — offer demo mode instead of blocking the user.
-      setError(null);
-      enterDemo();
-      router.replace(next);
+      setError("Неверный email или пароль. Проверь данные и попробуй снова.");
     } finally {
       setLoading(false);
     }
@@ -117,16 +114,6 @@ function LoginContent() {
               Зарегистрироваться
             </Link>
           </p>
-
-          <button
-            onClick={() => {
-              enterDemo();
-              router.replace(next);
-            }}
-            className="mt-3 w-full text-xs text-white/40 hover:text-neon-purple transition"
-          >
-            Войти в демо-режим →
-          </button>
         </div>
       </motion.div>
 
@@ -172,5 +159,3 @@ function Field({
     </label>
   );
 }
-
-

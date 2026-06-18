@@ -3,6 +3,7 @@
 // =============================================================================
 //  NightGram Web — Notifications context
 //  Holds the notification list, unread count, mark-as-read, and a toast.
+//  Fetches real notifications from the API. Socket.io pushes new ones.
 // =============================================================================
 
 import {
@@ -15,7 +16,7 @@ import {
   type ReactNode,
 } from "react";
 import type { AppNotification } from "@/types";
-import { mockNotifications } from "@/lib/mock";
+import { api } from "@/lib/api";
 
 interface NotificationsContextValue {
   notifications: AppNotification[];
@@ -23,6 +24,7 @@ interface NotificationsContextValue {
   markAllRead: () => void;
   markRead: (id: string) => void;
   toast: AppNotification | null;
+  pushNotification: (n: AppNotification) => void;
 }
 
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
@@ -31,36 +33,38 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [toast, setToast] = useState<AppNotification | null>(null);
 
+  // Fetch real notifications from the backend
   useEffect(() => {
-    setNotifications(mockNotifications());
+    const token = typeof window !== "undefined" ? localStorage.getItem("ng_access_token") : null;
+    if (!token) return;
+    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/notifications`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: AppNotification[]) => {
+        if (Array.isArray(data) && data.length > 0) setNotifications(data);
+      })
+      .catch(() => {});
   }, []);
 
   const markAllRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    // Sync with backend (fire-and-forget)
+    api.viewPost("notifications-read-all").catch(() => {});
   }, []);
 
   const markRead = useCallback((id: string) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
   }, []);
 
-  // Demo: show a toast notification after 8 seconds
-  useEffect(() => {
-    const t = setTimeout(() => {
-      const demo: AppNotification = {
-        id: "toast_demo",
-        type: "like",
-        title: "Nova Aurora",
-        body: "оценил(а) твой пост 🔥",
-        avatarUrl:
-          "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop",
-        read: false,
-        createdAt: new Date().toISOString(),
-      };
-      setToast(demo);
-      setNotifications((prev) => [demo, ...prev]);
-      setTimeout(() => setToast(null), 6000);
-    }, 8000);
-    return () => clearTimeout(t);
+  // Allow external code (socket handlers) to push a new notification + toast
+  const pushNotification = useCallback((n: AppNotification) => {
+    setNotifications((prev) => {
+      if (prev.some((x) => x.id === n.id)) return prev;
+      return [n, ...prev];
+    });
+    setToast(n);
+    setTimeout(() => setToast(null), 6000);
   }, []);
 
   const unreadCount = useMemo(
@@ -69,8 +73,8 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo<NotificationsContextValue>(
-    () => ({ notifications, unreadCount, markAllRead, markRead, toast }),
-    [notifications, unreadCount, markAllRead, markRead, toast],
+    () => ({ notifications, unreadCount, markAllRead, markRead, toast, pushNotification }),
+    [notifications, unreadCount, markAllRead, markRead, toast, pushNotification],
   );
 
   return (

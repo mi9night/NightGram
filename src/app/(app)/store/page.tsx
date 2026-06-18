@@ -13,7 +13,6 @@ import { CoinsBadge, PremiumBadge } from "@/components/shared/Badges";
 import { AuroraBackground } from "@/components/shared/AuroraBackground";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
-import { mockStoreItems } from "@/lib/mock";
 import { cn, formatCoins } from "@/lib/utils";
 
 const CATEGORIES: { id: StoreCategory | "all"; label: string; emoji: string }[] = [
@@ -27,24 +26,21 @@ const CATEGORIES: { id: StoreCategory | "all"; label: string; emoji: string }[] 
 ];
 
 export default function StorePage() {
-  const { user, isDemo } = useAuth();
+  const { user } = useAuth();
   const [items, setItems] = useState<StoreItem[]>([]);
   const [category, setCategory] = useState<StoreCategory | "all">("all");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let active = true;
-    (isDemo
-      ? Promise.resolve(mockStoreItems())
-      : api.getStoreItems().catch(() => mockStoreItems())
-    ).then((data) => {
+    api.getStoreItems().catch(() => []).then((data) => {
       if (!active) return;
       const owned = new Set(user?.ownedItems ?? []);
       setItems(data.map((d) => ({ ...d, owned: owned.has(d.id) })));
       setLoading(false);
     });
     return () => { active = false; };
-  }, [isDemo, user?.ownedItems]);
+  }, [user?.ownedItems]);
 
   const filtered = useMemo(
     () => (category === "all" ? items : items.filter((i) => i.category === category)),
@@ -121,14 +117,7 @@ export default function StorePage() {
 // =============================================================================
 
 function PremiumBanner() {
-  const { user, isDemo, updateUser } = useAuth();
-
-  async function grantDemoPremium() {
-    updateUser({
-      isPremium: true,
-      premiumUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    });
-  }
+  const { user, updateUser } = useAuth();
 
   if (user?.isPremium) {
     return (
@@ -149,11 +138,7 @@ function PremiumBanner() {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <PremiumBadge />
-          {isDemo && (
-            <button onClick={() => updateUser({ isPremium: false, premiumUntil: null })} className="btn-ghost px-3 py-2 text-xs">
-              Отключить
-            </button>
-          )}
+
         </div>
       </motion.div>
     );
@@ -238,14 +223,7 @@ function PremiumBanner() {
           После оплаты напишите в поддержку с чеком — мы активируем Premium вручную. В будущем оплата будет автоматической.
         </p>
 
-        {/* Demo activate */}
-        {isDemo && (
-          <div className="text-center mt-4">
-            <button onClick={grantDemoPremium} className="text-xs text-white/30 hover:text-neon-purple transition">
-              Активировать Premium (демо) →
-            </button>
-          </div>
-        )}
+
       </div>
     </motion.div>
   );

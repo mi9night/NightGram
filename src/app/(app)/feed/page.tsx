@@ -2,8 +2,7 @@
 
 // =============================================================================
 //  NightGram Web — Feed page (infinite vertical scroll of posts)
-//  Concept borrowed from social feeds: endless lazy-loaded vertical scroll.
-//  Layout & styling are 100% original NightGram.
+//  Real backend data only — no mock fallback.
 // =============================================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -13,76 +12,64 @@ import type { Post } from "@/types";
 import { PostCard } from "@/components/feed/PostCard";
 import { FeedSkeletons } from "@/components/feed/PostSkeleton";
 import { api } from "@/lib/api";
-import { mockFeed } from "@/lib/mock";
 import { useAuth } from "@/context/AuthContext";
 
 const PAGE_SIZE = 6;
 
 export default function FeedPage() {
-  const { isDemo } = useAuth();
+  const { user } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [reachedEnd, setReachedEnd] = useState(false);
+  const [error, setError] = useState(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   // Initial load
   useEffect(() => {
     let active = true;
     setLoading(true);
-    (isDemo
-      ? Promise.resolve(mockFeed(0, PAGE_SIZE))
-      : api.getFeed(undefined, PAGE_SIZE).catch(() => mockFeed(0, PAGE_SIZE))
-    ).then((data) => {
-      if (!active) return;
-      setPosts(data.posts);
-      setCursor(data.nextCursor);
-      setReachedEnd(data.nextCursor === null);
-      setLoading(false);
-    });
-    return () => {
-      active = false;
-    };
-  }, [isDemo]);
+    api.getFeed(undefined, PAGE_SIZE)
+      .then((data) => {
+        if (!active) return;
+        setPosts(data.posts);
+        setCursor(data.nextCursor);
+        setReachedEnd(data.nextCursor === null);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (active) { setError(true); setLoading(false); }
+      });
+    return () => { active = false; };
+  }, []);
 
   const loadMore = useCallback(() => {
     if (loadingMore || reachedEnd || !cursor) return;
     setLoadingMore(true);
-    const page = parseInt(cursor, 10);
-    (isDemo
-      ? Promise.resolve(mockFeed(page, PAGE_SIZE))
-      : api.getFeed(cursor, PAGE_SIZE).catch(() => mockFeed(page, PAGE_SIZE))
-    ).then((data) => {
-      setPosts((prev) => [...prev, ...data.posts]);
-      setCursor(data.nextCursor);
-      setReachedEnd(data.nextCursor === null);
-      setLoadingMore(false);
-    });
-  }, [cursor, loadingMore, reachedEnd, isDemo]);
+    api.getFeed(cursor, PAGE_SIZE)
+      .then((data) => {
+        setPosts((prev) => [...prev, ...data.posts]);
+        setCursor(data.nextCursor);
+        setReachedEnd(data.nextCursor === null);
+        setLoadingMore(false);
+      })
+      .catch(() => setLoadingMore(false));
+  }, [cursor, loadingMore, reachedEnd]);
 
-  // Infinite scroll via IntersectionObserver
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) loadMore();
-      },
+      (entries) => { if (entries[0].isIntersecting) loadMore(); },
       { rootMargin: "600px" },
     );
     observer.observe(el);
     return () => observer.disconnect();
   }, [loadMore]);
 
-  // Real-time new post (socket) — prepends a fresh post in demo with a hint.
-  useEffect(() => {
-    // Hook point: socket.on("post:new", ...) would prepend. Left for backend wiring.
-  }, []);
-
   return (
     <div className="max-w-2xl mx-auto px-4">
-      {/* Feed header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -99,13 +86,13 @@ export default function FeedPage() {
         </button>
       </motion.div>
 
-      {/* Stories-style rail (original NightGram, horizontal circles) */}
-      <StoriesRail />
-
-      {/* Posts */}
       <div className="space-y-5 mt-5">
         {loading ? (
           <FeedSkeletons count={3} />
+        ) : error ? (
+          <EmptyFeed />
+        ) : posts.length === 0 ? (
+          <EmptyFeed />
         ) : (
           <AnimatePresence initial={false}>
             {posts.map((p, i) => (
@@ -114,14 +101,10 @@ export default function FeedPage() {
           </AnimatePresence>
         )}
 
-        {/* Loading more skeletons */}
         {loadingMore && <FeedSkeletons count={2} />}
-
-        {/* Infinite scroll sentinel */}
         <div ref={sentinelRef} className="h-4" />
 
-        {/* End of feed */}
-        {reachedEnd && !loading && (
+        {reachedEnd && !loading && posts.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -136,56 +119,23 @@ export default function FeedPage() {
             </p>
           </motion.div>
         )}
-
-        {loadingMore && (
-          <div className="flex items-center justify-center py-4 text-white/50">
-            <Loader2 size={18} className="animate-spin mr-2" /> Загрузка ещё постов…
-          </div>
-        )}
       </div>
     </div>
   );
 }
 
-/** Original NightGram "highlights" rail — horizontal avatars of people/channels. */
-function StoriesRail() {
-  const items = [
-    { name: "Ты", src: "https://images.unsplash.com/photo-1633332755192-727a05c4013d?w=200&h=200&fit=crop", you: true },
-    { name: "nova", src: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop", color: "#a855f7" },
-    { name: "lumen", src: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop", color: "#ec4899" },
-    { name: "kestrel", src: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop", color: "#22d3ee" },
-    { name: "NightWire", src: "https://images.unsplash.com/photo-1614851099511-773084f6911d?w=200&h=200&fit=crop", color: "#fbbf24" },
-    { name: "ember", src: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop", color: "#fbbf24" },
-  ];
+function EmptyFeed() {
   return (
-    <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide">
-      {items.map((it) => (
-        <motion.button
-          key={it.name}
-          whileHover={{ y: -3 }}
-          whileTap={{ scale: 0.95 }}
-          className="flex flex-col items-center gap-1.5 shrink-0"
-        >
-          <div
-            className="p-[2px] rounded-full"
-            style={{
-              background: it.you
-                ? "rgba(255,255,255,0.2)"
-                : `conic-gradient(from 0deg, ${it.color}, #ec4899, ${it.color})`,
-            }}
-          >
-            <div className="p-[2px] rounded-full bg-midnight-900">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={it.src}
-                alt={it.name}
-                className="h-14 w-14 rounded-full object-cover"
-              />
-            </div>
-          </div>
-          <span className="text-[11px] text-white/60 max-w-[60px] truncate">{it.name}</span>
-        </motion.button>
-      ))}
+    <div className="flex flex-col items-center gap-4 py-16 text-center">
+      <div className="h-16 w-16 rounded-full gradient-border grid place-items-center">
+        <Sparkles size={28} className="text-neon-purple" />
+      </div>
+      <div>
+        <h3 className="font-display font-bold text-xl">Здесь пока пусто</h3>
+        <p className="text-white/50 text-sm mt-1 max-w-xs">
+          В ленте нет постов. Подпишись на людей и каналы, или создай свой первый пост!
+        </p>
+      </div>
     </div>
   );
 }

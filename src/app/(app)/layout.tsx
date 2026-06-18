@@ -2,14 +2,12 @@
 
 // =============================================================================
 //  NightGram Web — Authenticated app shell
-//  Wraps every protected route with the navigation + a demo-mode banner.
 // =============================================================================
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppNav } from "@/components/shared/AppNav";
 import { useAuth } from "@/context/AuthContext";
-import { DemoBanner } from "@/components/shared/DemoBanner";
 
 export default function AppLayout({
   children,
@@ -39,7 +37,6 @@ export default function AppLayout({
 
   return (
     <div className="min-h-screen pb-24 md:pb-0">
-      <DemoBanner />
       <AppNav />
       <main className="pt-24">{children}</main>
     </div>

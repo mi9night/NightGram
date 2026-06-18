@@ -12,11 +12,8 @@ import { ChatList } from "@/components/messenger/ChatList";
 import { ChatView } from "@/components/messenger/ChatView";
 import { ChatInfo } from "@/components/messenger/ChatInfo";
 import { api } from "@/lib/api";
-import { mockConversations } from "@/lib/mock";
-import { useAuth } from "@/context/AuthContext";
 
 export default function MessagesPage() {
-  const { isDemo } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showInfo, setShowInfo] = useState(false);
@@ -24,10 +21,7 @@ export default function MessagesPage() {
 
   useEffect(() => {
     let active = true;
-    (isDemo
-      ? Promise.resolve(mockConversations())
-      : api.getConversations().catch(() => mockConversations())
-    ).then((data) => {
+    api.getConversations().then((data) => {
       if (!active) return;
       setConversations(data);
       setActiveId(data[0]?.id ?? null);
@@ -36,7 +30,7 @@ export default function MessagesPage() {
     return () => {
       active = false;
     };
-  }, [isDemo]);
+  }, []);
 
   const active = conversations.find((c) => c.id === activeId) ?? null;
 

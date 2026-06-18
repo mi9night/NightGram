@@ -39,7 +39,7 @@ export default function ProfilePage({
   params: { username: string };
 }) {
   const { username } = params;
-  const { user: me, isDemo } = useAuth();
+  const { user: me } = useAuth();
   const router = useRouter();
 
   const [profile, setProfile] = useState<User | null>(null);
@@ -56,17 +56,12 @@ export default function ProfilePage({
 
     const loadProfile = isMe
       ? Promise.resolve(me!)
-      : isDemo
-        ? Promise.resolve(mockUserByUsername(username) ?? me!)
-        : api.getUserProfile(username).catch(() => mockUserByUsername(username) ?? me!);
+      : api.getUserProfile(username).catch(() => me!);
 
     loadProfile.then((u) => {
       if (!active || !u) return;
       setProfile(u);
-      (isDemo
-        ? Promise.resolve(mockFeed(0, 4).posts)
-        : api.getUserPosts(u.username).catch(() => mockFeed(0, 4).posts)
-      ).then((p) => active && setPosts(p));
+      api.getUserPosts(u.username).catch(() => []).then((p) => active && setPosts(p));
       const owned = new Set(u.ownedItems);
       setOwnedItems(mockStoreItems().filter((it) => owned.has(it.id)));
       setLoading(false);

@@ -13,11 +13,10 @@ import { GlowAvatar } from "@/components/shared/GlowAvatar";
 import { cn, timeAgo } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
-import { mockComments } from "@/lib/mock";
 import { uid } from "@/lib/utils";
 
 export function CommentSheet({ postId, onClose }: { postId: string; onClose: () => void }) {
-  const { user, isDemo } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,10 +26,7 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    (isDemo
-      ? Promise.resolve(mockComments(postId))
-      : api.getComments(postId).catch(() => mockComments(postId))
-    ).then((data) => {
+    api.getComments(postId).catch(() => []).then((data) => {
       if (active) {
         setComments(data);
         setLoading(false);
@@ -39,7 +35,7 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
     return () => {
       active = false;
     };
-  }, [postId, isDemo]);
+  }, [postId]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -67,10 +63,8 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
     setComments((c) => [...c, optimistic]);
 
     try {
-      if (!isDemo) {
-        const real = await api.addComment(postId, body);
-        setComments((c) => c.map((x) => (x.id === optimistic.id ? real : x)));
-      }
+      const real = await api.addComment(postId, body);
+      setComments((c) => c.map((x) => (x.id === optimistic.id ? real : x)));
     } catch {
       /* keep optimistic */
     } finally {

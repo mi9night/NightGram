@@ -173,12 +173,8 @@ function ProfileSection() {
       customId: customId.trim() || null,
     };
     try {
-      if (!isDemo) {
-        const updated = await api.updateProfile(patch);
-        updateUser(updated);
-      } else {
-        updateUser(patch as Partial<User>);
-      }
+      const updated = await api.updateProfile(patch);
+      updateUser(updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
@@ -412,8 +408,7 @@ function NotificationsSection() {
   function toggle(key: keyof NotificationSettings) {
     const next = { ...settings, [key]: !settings[key] };
     setSettings(next);
-    if (!isDemo) updateUser({ notificationSettings: next });
-    else updateUser({ notificationSettings: next });
+    updateUser({ notificationSettings: next });
   }
 
   return (
