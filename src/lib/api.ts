@@ -279,6 +279,70 @@ export const api = {
   async rejectPurchase(id: string): Promise<{ ok: boolean }> {
     return request(`/admin/purchases/${id}/reject`, { method: "POST" });
   },
+
+  // ---- Admin: Tickets ----
+  async getTickets(status?: string): Promise<unknown[]> {
+    const qs = status ? `?status=${status}` : "";
+    const raw = await request<unknown[]>(`/admin/tickets${qs}`);
+    return normalize<unknown[]>(raw);
+  },
+  async updateTicket(id: string, payload: { status?: string; assignedTo?: string; priority?: string }): Promise<unknown> {
+    return request(`/admin/tickets/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
+  },
+
+  // ---- Admin: Users ----
+  async getAdminUsers(search?: string, limit?: number): Promise<unknown[]> {
+    const qs = new URLSearchParams();
+    if (search) qs.set("search", search);
+    if (limit) qs.set("limit", String(limit));
+    const raw = await request<unknown[]>(`/admin/users${qs.toString() ? "?" + qs.toString() : ""}`);
+    return normalize<unknown[]>(raw);
+  },
+  async changeRole(userId: string, role: string): Promise<{ ok: boolean }> {
+    return request(`/admin/users/${userId}/role`, { method: "PATCH", body: JSON.stringify({ role }) });
+  },
+  async verifyUser(userId: string, verified: boolean): Promise<{ ok: boolean }> {
+    return request(`/admin/users/${userId}/verify`, { method: "PATCH", body: JSON.stringify({ verified }) });
+  },
+  async editUserStats(userId: string, payload: { nightCoins?: number; isPremium?: boolean; premiumUntil?: string }): Promise<{ ok: boolean }> {
+    return request(`/admin/users/${userId}/stats`, { method: "PATCH", body: JSON.stringify(payload) });
+  },
+
+  // ---- Admin: Punishments ----
+  async getPunishments(): Promise<unknown[]> {
+    const raw = await request<unknown[]>("/admin/punishments");
+    return normalize<unknown[]>(raw);
+  },
+  async createPunishment(payload: { userId: string; type: string; reason: string; duration: string }): Promise<unknown> {
+    return request("/admin/punishments", { method: "POST", body: JSON.stringify(payload) });
+  },
+  async revokePunishment(id: string): Promise<{ ok: boolean }> {
+    return request(`/admin/punishments/${id}/revoke`, { method: "POST" });
+  },
+
+  // ---- Admin: Reports ----
+  async createReport(payload: { targetType: string; targetId: string; category: string; reason: string }): Promise<unknown> {
+    return request("/admin/reports", { method: "POST", body: JSON.stringify(payload) });
+  },
+  async getReports(status?: string): Promise<unknown[]> {
+    const qs = status ? `?status=${status}` : "";
+    const raw = await request<unknown[]>(`/admin/reports${qs}`);
+    return normalize<unknown[]>(raw);
+  },
+  async actionReport(id: string, action: string): Promise<{ ok: boolean }> {
+    return request(`/admin/reports/${id}/action`, { method: "POST", body: JSON.stringify({ action }) });
+  },
+
+  // ---- Admin: Broadcast ----
+  async sendBroadcast(payload: { title: string; subtitle?: string; body?: string; icon?: string }): Promise<{ ok: boolean; sent: number }> {
+    return request("/admin/broadcast", { method: "POST", body: JSON.stringify(payload) });
+  },
+
+  // ---- Admin: Logs ----
+  async getLogs(): Promise<unknown[]> {
+    const raw = await request<unknown[]>("/admin/logs");
+    return normalize<unknown[]>(raw);
+  },
 };
 
 function normalizeSession(data: {
