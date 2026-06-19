@@ -116,6 +116,7 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
         </div>
         <div className="ml-auto">
           <PostMenu
+            itemType="пост"
             isOwner={post.author.kind === "user" && authorUser?.id === user?.id}
             isAdmin={["admin", "owner", "co_owner", "moderator"].includes(user?.role ?? "")}
             onDelete={() => {

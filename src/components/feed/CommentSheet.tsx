@@ -138,9 +138,16 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
                     <button className="hover:text-white transition">Ответить</button>
                     <div className="ml-auto">
                       <PostMenu
+                        itemType="комментарий"
                         isOwner={c.author.id === user?.id}
                         isAdmin={["admin", "owner", "co_owner", "moderator"].includes(user?.role ?? "")}
-                        onReport={(category, reason) => {
+                        onDelete={() => {
+                          fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/posts/comments/${c.id}`, {
+                            method: "DELETE",
+                            headers: { Authorization: `Bearer ${localStorage.getItem("ng_access_token")}` },
+                          }).then(() => window.location.reload()).catch(() => {});
+                        }}
+                        onReport={(category: string, reason: string) => {
                           api.createReport({ targetType: "comment", targetId: c.id, category, reason }).catch(() => {});
                           alert("Жалоба отправлена!");
                         }}

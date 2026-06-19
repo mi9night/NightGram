@@ -13,7 +13,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { searchTracks, getTrendingTracks, type RealTrack } from "@/lib/musicApi";
+import { searchTracks, getTrendingTracks, getYouTubeUrl, type RealTrack } from "@/lib/musicApi";
+import { ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Tab = "wave" | "recommendations" | "search" | "saved";
@@ -358,6 +359,13 @@ export default function MusicPage() {
                   <div className="text-xs text-white/45 truncate">{currentTrack.artist}</div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => window.open(getYouTubeUrl(currentTrack), "_blank")}
+                    className="grid place-items-center h-8 w-8 rounded-lg text-red-500 hover:bg-red-500/10 transition"
+                    title="Слушать полностью на YouTube"
+                  >
+                    <ExternalLink size={15} />
+                  </button>
                   <button onClick={() => setShuffle((v) => !v)}
                     className={cn("grid place-items-center h-8 w-8 rounded-lg transition", shuffle ? "text-neon-purple bg-neon-purple/10" : "text-white/50 hover:text-white")}>
                     <Shuffle size={15} />
@@ -458,7 +466,7 @@ function EmptyState({ icon: Icon, text }: { icon: LucideIcon; text: string }) {
 function WaveBanner({ playing, onToggle }: { playing: boolean; onToggle: () => void }) {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-visible rounded-4xl mb-4" style={{ minHeight: 200 }}>
+      className="relative overflow-hidden rounded-4xl mb-4 shadow-glow-lg" style={{ minHeight: 200 }}>
       <motion.div className="absolute inset-0"
         style={{ background: "linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7, #ec4899, #f59e0b, #6366f1)", backgroundSize: "300% 300%" }}
         animate={{ backgroundPosition: ["0% 50%", "50% 0%", "100% 50%", "50% 100%", "0% 50%"] }}

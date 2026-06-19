@@ -110,4 +110,39 @@ router.post("/:id/comments", async (req, res) => {
   res.json(data);
 });
 
+
+// DELETE /api/posts/comments/:id — delete a comment (owner or admin)
+router.delete("/comments/:id", async (req, res) => {
+  const { id } = req.params;
+  const adminRoles = ["admin", "owner", "co_owner", "moderator"];
+
+  // Check if user is the comment author or admin
+  const { data: comment } = await supabase
+    .from("comments")
+    .select("author_id")
+    .eq("id", id)
+    .single();
+
+  if (!comment) return res.status(404).json({ error: "Комментарий не найден" });
+
+  // Get user role
+  const { data: user } = await supabase
+    .from("users")
+    .select("role")
+    .eq("id", req.userId)
+    .single();
+
+  const isOwner = comment.author_id === req.userId;
+  const isAdmin = user && adminRoles.includes(user.role);
+
+  if (!isOwner && !isAdmin) {
+    return res.status(403).json({ error: "Нет прав на удаление" });
+  }
+
+  const { error } = await supabase.from("comments").delete().eq("id", id);
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.json({ ok: true });
+});
+
 module.exports = router;

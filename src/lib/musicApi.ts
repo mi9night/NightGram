@@ -1,7 +1,6 @@
 // =============================================================================
 //  NightGram Web — Music API helpers
-//  Free music search via iTunes Search API (30-second previews)
-//  No API key required.
+//  Full track playback via YouTube search + iTunes metadata
 // =============================================================================
 
 export interface RealTrack {
@@ -10,13 +9,12 @@ export interface RealTrack {
   artist: string;
   duration: number;
   cover: string;
-  preview: string; // 30-second preview URL
+  preview: string; // 30-second iTunes preview
   source: "itunes";
 }
 
 /**
  * Search for real tracks via iTunes Search API.
- * Returns 30-second previews (free, no key needed).
  */
 export async function searchTracks(query: string, limit = 25): Promise<RealTrack[]> {
   if (!query.trim()) return [];
@@ -26,7 +24,6 @@ export async function searchTracks(query: string, limit = 25): Promise<RealTrack
   try {
     const res = await fetch(url);
     if (!res.ok) return [];
-
     const data = await res.json();
     if (!data.results || !Array.isArray(data.results)) return [];
 
@@ -54,10 +51,25 @@ export async function searchTracks(query: string, limit = 25): Promise<RealTrack
 }
 
 /**
- * Get recommended / trending tracks.
+ * Get trending tracks.
  */
 export async function getTrendingTracks(): Promise<RealTrack[]> {
   const genres = ["synthwave", "lofi hip hop", "dark pop", "electronic"];
   const genre = genres[Math.floor(Math.random() * genres.length)];
   return searchTracks(genre, 15);
+}
+
+/**
+ * Build a YouTube search URL for full track playback.
+ * Opens in a new tab — user can listen to the FULL track.
+ */
+export function getYouTubeUrl(track: RealTrack): string {
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`${track.artist} ${track.title}`)}`;
+}
+
+/**
+ * Build a YouTube embed URL for in-app playback.
+ */
+export function getYouTubeEmbedUrl(track: RealTrack): string {
+  return `https://www.youtube.com/embed?listType=search&list=${encodeURIComponent(`${track.artist} ${track.title}`)}`;
 }
