@@ -114,17 +114,6 @@ export function BalanceDropdown() {
                 </Link>
               )}
             </div>
-
-            {/* Quick links */}
-            <div className="p-2">
-              <Link
-                href="/store/premium?tab=premium"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm hover:bg-white/5 transition text-white/70"
-              >
-                <Crown size={14} /> Купить Premium
-              </Link>
-            </div>
           </motion.div>
         )}
       </AnimatePresence>
