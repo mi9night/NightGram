@@ -182,3 +182,80 @@ router.post("/purchases/:id/reject", requireAdmin, async (req, res) => {
 });
 
 module.exports = router;
+
+// ============================================================================
+//  ROLE MANAGEMENT (owner / co_owner only)
+// ============================================================================
+
+// Middleware: require owner or co_owner
+function requireOwner(req, res, next) {
+  const ownerRoles = ["owner", "co_owner"];
+  if (!ownerRoles.includes(req.userRole)) {
+    return res.status(403).json({ error: "Только владелец может менять роли" });
+  }
+  next();
+}
+
+// PATCH /api/admin/users/:id/role — change user role (owner/co_owner only)
+router.patch("/users/:id/role", requireOwner, async (req, res) => {
+  const { id } = req.params;
+  const { role } = req.body;
+
+  const validRoles = ["user", "creator", "moderator", "admin", "support", "co_owner", "owner"];
+  if (!validRoles.includes(role)) {
+    return res.status(400).json({ error: "Недопустимая роль" });
+  }
+
+  // Prevent anyone from demoting the owner
+  const { data: target } = await supabase
+    .from("users")
+    .select("role, username")
+    .eq("id", id)
+    .single();
+
+  if (!target) return res.status(404).json({ error: "Пользователь не найден" });
+  if (target.role === "owner" && role !== "owner") {
+    return res.status(403).json({ error: "Нельзя изменить роль владельца" });
+  }
+
+  const { data, error } = await supabase
+    .from("users")
+    .update({ role })
+    .eq("id", id)
+    .select("*")
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Log
+  try {
+    await supabase.from("moderation_logs").insert({
+      action: "Смена роли",
+      admin_id: req.userId,
+      admin_name: req.username || "owner",
+      target_user_id: id,
+      target_user_name: target.username,
+      details: `→ ${role}`,
+    });
+  } catch (e) { /* ignore */ }
+
+  res.json({ ok: true, role, username: target.username });
+});
+
+// PATCH /api/admin/users/:id/verify — verify/unverify user (admin+)
+router.patch("/users/:id/verify", requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { verified } = req.body;
+
+  // Verify = set is_premium true + special badge (simplified)
+  const { data, error } = await supabase
+    .from("users")
+    .update({ avatar_frame: verified ? "verified" : null })
+    .eq("id", id)
+    .select("username")
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  res.json({ ok: true, verified, username: data?.username });
+});

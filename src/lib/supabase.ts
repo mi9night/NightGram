@@ -1,6 +1,5 @@
 // =============================================================================
 //  NightGram Web — Supabase client (Postgres / Storage helpers)
-//  The backend holds the service-role key; the browser uses anon + RLS.
 // =============================================================================
 
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
@@ -21,25 +20,30 @@ export function getSupabase(): SupabaseClient {
 }
 
 /**
- * Upload a media file (avatar / post image / message attachment) to the
- * Supabase Storage bucket `nightgram-media`. Falls back to object URL when
- * Supabase is not configured (dev mock).
+ * Upload a media file to Supabase Storage.
+ * Returns a PERMANENT public URL (not a temporary blob URL).
+ * If Supabase is not configured, throws an error.
  */
 export async function uploadMedia(
   file: File,
   folder: "avatars" | "posts" | "messages" = "posts",
 ): Promise<string> {
-  if (!SUPABASE_URL) return URL.createObjectURL(file);
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error("Supabase не настроен. Загрузка файлов недоступна.");
+  }
 
   const sb = getSupabase();
   const ext = file.name.split(".").pop() ?? "bin";
-  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+  const safeExt = ext.replace(/[^a-zA-Z0-9]/g, "").slice(0, 5) || "bin";
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
 
   const { error } = await sb.storage
     .from("nightgram-media")
     .upload(path, file, { cacheControl: "3600", upsert: false });
 
-  if (error) throw error;
+  if (error) {
+    throw new Error(`Ошибка загрузки: ${error.message}`);
+  }
 
   const { data } = sb.storage.from("nightgram-media").getPublicUrl(path);
   return data.publicUrl;

@@ -85,7 +85,28 @@ export default function ProfilePage({
     );
   }
 
-  const ngIdDisplay = String(profile.ngId).padStart(8, "0");
+  // Safe defaults for all profile fields (prevents client-side crash)
+  const safeProfile: User = {
+    ...profile,
+    ngId: Number(profile.ngId ?? 10000001),
+    nameColor: profile.nameColor ?? "#ffffff",
+    displayName: profile.displayName || profile.username || "Пользователь",
+    username: profile.username || "unknown",
+    bio: profile.bio ?? "",
+    avatarUrl: profile.avatarUrl ?? null,
+    bannerUrl: profile.bannerUrl ?? null,
+    glowEffect: profile.glowEffect ?? null,
+    avatarFrame: profile.avatarFrame ?? null,
+    isPremium: profile.isPremium ?? false,
+    nightCoins: Number(profile.nightCoins ?? 0),
+    followersCount: Number(profile.followersCount ?? 0),
+    followingCount: Number(profile.followingCount ?? 0),
+    postsCount: Number(profile.postsCount ?? 0),
+    customId: profile.customId ?? null,
+    ownedItems: profile.ownedItems ?? [],
+  };
+
+  const ngIdDisplay = String(safeProfile.ngId).padStart(8, "0");
 
   return (
     <div className="max-w-4xl mx-auto px-4">
@@ -96,10 +117,10 @@ export default function ProfilePage({
       >
         {/* ===== Banner ===== */}
         <div className="h-36 md:h-48 rounded-4xl overflow-hidden relative">
-          {profile.bannerUrl ? (
+          {safeProfile.bannerUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={profile.bannerUrl}
+              src={safeProfile.bannerUrl}
               alt=""
               className="h-full w-full object-cover"
             />
@@ -107,7 +128,7 @@ export default function ProfilePage({
             <div
               className="h-full w-full"
               style={{
-                background: `linear-gradient(120deg, ${profile.nameColor}, var(--accent-pink, #ec4899), var(--accent-secondary, #8b5cf6))`,
+                background: `linear-gradient(120deg, ${safeProfile.nameColor}, var(--accent-pink, #ec4899), var(--accent-secondary, #8b5cf6))`,
               }}
             />
           )}
@@ -125,11 +146,11 @@ export default function ProfilePage({
           <div className="flex flex-col md:flex-row md:items-center gap-4">
             <div className="shrink-0 self-start">
               <GlowAvatar
-                src={profile.avatarUrl}
-                alt={profile.username}
+                src={safeProfile.avatarUrl}
+                alt={safeProfile.username}
                 size={96}
-                glow={profile.glowEffect ?? undefined}
-                frame={profile.avatarFrame ?? undefined}
+                glow={safeProfile.glowEffect ?? undefined}
+                frame={safeProfile.avatarFrame ?? undefined}
                 ringColor="#0e0a22"
               />
             </div>
@@ -140,33 +161,33 @@ export default function ProfilePage({
                 <h1
                   className="font-display font-bold text-2xl md:text-3xl truncate leading-none"
                   style={{
-                    color: profile.nameColor,
-                    textShadow: profile.glowEffect ? `0 0 16px ${profile.nameColor}88` : undefined,
+                    color: safeProfile.nameColor,
+                    textShadow: safeProfile.glowEffect ? `0 0 16px ${safeProfile.nameColor}88` : undefined,
                   }}
                 >
-                  {profile.displayName}
+                  {safeProfile.displayName}
                 </h1>
                 {/* Badges wrap to next line under the first badge if too many */}
                 <div className="inline-flex items-center gap-1.5 flex-wrap max-w-full">
-                  {profile.isPremium && <PremiumCrownIcon />}
+                  {safeProfile.isPremium && <PremiumCrownIcon />}
                 </div>
               </div>
 
               {/* Single identifier line: @customId OR @ngId (no duplicate @) */}
               <div className="flex items-center gap-2 mt-2 flex-wrap">
-                {profile.customId ? (
-                  <ColoredUsername username={profile.customId} color={profile.nameColor} className="text-sm" />
+                {safeProfile.customId ? (
+                  <ColoredUsername username={safeProfile.customId} color={safeProfile.nameColor} className="text-sm" />
                 ) : (
                   <span
                     className="font-semibold text-sm"
-                    style={{ color: profile.nameColor, textShadow: `0 0 10px ${profile.nameColor}88` }}
+                    style={{ color: safeProfile.nameColor, textShadow: `0 0 10px ${safeProfile.nameColor}88` }}
                   >
                     @{ngIdDisplay}
                   </span>
                 )}
               </div>
 
-              <p className="text-white/60 text-sm mt-2 max-w-md">{profile.bio}</p>
+              <p className="text-white/60 text-sm mt-2 max-w-md">{safeProfile.bio}</p>
             </div>
 
             {/* Action buttons */}
@@ -194,9 +215,9 @@ export default function ProfilePage({
 
           {/* Stats */}
           <div className="flex gap-6 mt-4 pt-4 border-t border-white/5">
-            <Stat label="Постов" value={profile.postsCount} />
-            <Stat label="Подписчиков" value={profile.followersCount} />
-            <Stat label="Подписок" value={profile.followingCount} />
+            <Stat label="Постов" value={safeProfile.postsCount} />
+            <Stat label="Подписчиков" value={safeProfile.followersCount} />
+            <Stat label="Подписок" value={safeProfile.followingCount} />
           </div>
 
           {/* Awards */}
@@ -205,7 +226,7 @@ export default function ProfilePage({
               <Trophy size={13} className="text-neon-gold" />
               <span className="text-xs font-medium text-white/35">Награды</span>
             </div>
-            <ProfileAwards isPremium={profile.isPremium} ownedCount={ownedItems.length} />
+            <ProfileAwards isPremium={safeProfile.isPremium} ownedCount={ownedItems.length} />
           </div>
         </div>
       </motion.div>
