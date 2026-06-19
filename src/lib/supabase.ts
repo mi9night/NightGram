@@ -20,9 +20,8 @@ export function getSupabase(): SupabaseClient {
 }
 
 /**
- * Upload a media file to Supabase Storage.
- * Returns a PERMANENT public URL (not a temporary blob URL).
- * If Supabase is not configured, throws an error.
+ * Upload a media file to Supabase Storage bucket "nightgram-media".
+ * Returns a PERMANENT public URL.
  */
 export async function uploadMedia(
   file: File,
@@ -37,14 +36,21 @@ export async function uploadMedia(
   const safeExt = ext.replace(/[^a-zA-Z0-9]/g, "").slice(0, 5) || "bin";
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${safeExt}`;
 
-  const { error } = await sb.storage
+  // Upload the file
+  const { data: uploadData, error: uploadError } = await sb.storage
     .from("nightgram-media")
-    .upload(path, file, { cacheControl: "3600", upsert: false });
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "image/jpeg",
+    });
 
-  if (error) {
-    throw new Error(`Ошибка загрузки: ${error.message}`);
+  if (uploadError) {
+    throw new Error(`Ошибка загрузки: ${uploadError.message}`);
   }
 
-  const { data } = sb.storage.from("nightgram-media").getPublicUrl(path);
-  return data.publicUrl;
+  // Build the public URL manually for reliability
+  const publicUrl = `${SUPABASE_URL}/storage/v1/object/public/nightgram-media/${path}`;
+
+  return publicUrl;
 }

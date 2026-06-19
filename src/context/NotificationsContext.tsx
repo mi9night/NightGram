@@ -41,11 +41,12 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     fetch(`${apiUrl}/notifications`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => {
+      .then(async (r) => {
         if (!r.ok) return [];
-        return r.json();
+        const data = await r.json();
+        return Array.isArray(data) ? data : [];
       })
-      .then((data) => {
+      .then((data: AppNotification[]) => {
         if (Array.isArray(data)) setNotifications(data);
       })
       .catch(() => {});

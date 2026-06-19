@@ -74,6 +74,7 @@ tryMount("/api/users", authMiddleware, require("./routes/users").usersRouter, "U
 tryMount("/api/premium", authMiddleware, require("./routes/premium").premiumRouter, "Premium");
 tryMount("/api/posts", authMiddleware, require("./routes/posts"), "Posts");
 tryMount("/api/admin", authMiddleware, require("./routes/admin"), "Admin");
+tryMount("/api/notifications", authMiddleware, require("./routes/notifications"), "Notifications");
 
 // --- Socket.io ---
 let io = null;
