@@ -133,3 +133,21 @@ CREATE POLICY "insert logs" ON public.moderation_logs FOR INSERT WITH CHECK (tru
 
 -- ===== DONE =====
 SELECT 'Migration complete — all moderation tables created' AS status;
+
+-- ===== 8. STORAGE POLICIES (for nightgram-media bucket) =====
+-- Allow public read of all files in the bucket
+CREATE POLICY "Public read access" ON storage.objects
+  FOR SELECT
+  USING (bucket_id = 'nightgram-media');
+
+-- Allow authenticated users to upload
+CREATE POLICY "Authenticated upload" ON storage.objects
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (bucket_id = 'nightgram-media');
+
+-- Allow users to update their own files
+CREATE POLICY "Authenticated update" ON storage.objects
+  FOR UPDATE
+  TO authenticated
+  USING (bucket_id = 'nightgram-media');

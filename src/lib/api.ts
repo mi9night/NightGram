@@ -289,6 +289,9 @@ export const api = {
   async updateTicket(id: string, payload: { status?: string; assignedTo?: string; priority?: string }): Promise<unknown> {
     return request(`/admin/tickets/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
   },
+  async createTicket(payload: { subject: string; body: string; category: string }): Promise<unknown> {
+    return request("/admin/tickets", { method: "POST", body: JSON.stringify(payload) });
+  },
 
   // ---- Admin: Users ----
   async getAdminUsers(search?: string, limit?: number): Promise<unknown[]> {

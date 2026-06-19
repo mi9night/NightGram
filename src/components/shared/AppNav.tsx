@@ -24,6 +24,7 @@ import {
 import { NightGramWordmark } from "@/components/shared/NightGramLogo";
 import { GlowAvatar } from "@/components/shared/GlowAvatar";
 import { NotificationBell } from "@/components/shared/NotificationBell";
+import { SupportButton } from "@/components/shared/SupportButton";
 import { BalanceDropdown } from "@/components/shared/BalanceDropdown";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";

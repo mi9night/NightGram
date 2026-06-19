@@ -41,6 +41,7 @@ export const config = {
     "/notifications/:path*",
     "/music/:path*",
     "/admin/:path*",
+    "/support/:path*",
     "/login",
     "/register",
   ],

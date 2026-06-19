@@ -51,6 +51,14 @@ if (stripeWebhookHandler) {
 const { authRouter } = require("./routes/auth");
 app.use("/api/auth", authRouter);
 
+// --- Upload route (needs multer, before express.json) ---
+try {
+  app.use("/api/upload", require("./middleware/auth").authMiddleware, require("./routes/upload"));
+  console.log("[NightGram] Upload routes loaded ✓");
+} catch (e) {
+  console.error("[NightGram] Upload routes FAILED:", e.message);
+}
+
 // --- Auth middleware ---
 const { authMiddleware } = require("./middleware/auth");
 
