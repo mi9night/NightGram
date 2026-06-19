@@ -30,7 +30,6 @@ import { CommentSheet } from "./CommentSheet";
 const QUICK_REACTIONS = ["🔥", "❤️", "😮", "✨", "💜"];
 
 export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
-  const { isDemo } = useAuth();
   const router = useRouter();
   const [liked, setLiked] = useState(post.liked);
   const [saved, setSaved] = useState(post.saved);
@@ -43,13 +42,13 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
     const next = !liked;
     setLiked(next);
     setLikes((n) => n + (next ? 1 : -1));
-    if (!isDemo) api.toggleLike(post.id).catch(() => {});
+    api.toggleLike(post.id).catch(() => {});
   }
 
   function toggleSave() {
     const next = !saved;
     setSaved(next);
-    if (!isDemo) api.toggleSave(post.id).catch(() => {});
+    api.toggleSave(post.id).catch(() => {});
   }
 
   function react(emoji: string) {

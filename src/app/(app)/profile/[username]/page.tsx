@@ -30,7 +30,6 @@ import { ColoredUsername, PremiumCrownIcon } from "@/components/shared/Badges";
 import { PostCard } from "@/components/feed/PostCard";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
-import { mockFeed, mockStoreItems, mockUserByUsername } from "@/lib/mock";
 import { cn, formatCount } from "@/lib/utils";
 
 export default function ProfilePage({
@@ -55,15 +54,20 @@ export default function ProfilePage({
     setLoading(true);
 
     const loadProfile = isMe
-      ? Promise.resolve(me!)
-      : api.getUserProfile(username).catch(() => me!);
+      ? me ? Promise.resolve(me) : api.getUserProfile("me").catch(() => null)
+      : api.getUserProfile(username);
 
     loadProfile.then((u) => {
-      if (!active || !u) return;
+      if (!active) return;
+      if (!u) {
+        setLoading(false);
+        return;
+      }
       setProfile(u);
-      api.getUserPosts(u.username).catch(() => []).then((p) => active && setPosts(p));
-      const owned = new Set(u.ownedItems);
-      setOwnedItems(mockStoreItems().filter((it) => owned.has(it.id)));
+      if (u.username) {
+        api.getUserPosts(u.username).catch(() => []).then((p) => active && setPosts(p));
+      }
+      const owned = new Set(u.ownedItems ?? []);
       setLoading(false);
     });
 

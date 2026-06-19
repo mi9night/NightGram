@@ -11,7 +11,6 @@ import type { StoreItem } from "@/types";
 import { cn, formatCoins } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
-import { redirectToCheckout } from "@/lib/stripe";
 
 const RARITY = {
   common: { color: "#9ca3af", label: "Common", glow: "0 0 12px rgba(156,163,175,0.4)" },
@@ -30,7 +29,7 @@ const CATEGORY_GRADIENTS: Record<StoreItem["category"], string> = {
 };
 
 export function StoreCard({ item, index = 0 }: { item: StoreItem; index?: number }) {
-  const { user, updateUser, isDemo } = useAuth();
+  const { user, updateUser } = useAuth();
   const [owned, setOwned] = useState(item.owned);
   const [buying, setBuying] = useState(false);
   const rarity = RARITY[item.rarity];
@@ -42,15 +41,11 @@ export function StoreCard({ item, index = 0 }: { item: StoreItem; index?: number
     if (!canAfford || owned) return;
     setBuying(true);
     try {
-      if (!isDemo) {
-        const res = await api.buyWithCoins(item.id);
-        updateUser({
-          nightCoins: res.balance,
-          ownedItems: [...(user?.ownedItems ?? []), item.id],
-        });
-      } else {
-        updateUser({ nightCoins: (user?.nightCoins ?? 0) - item.priceCoins });
-      }
+      const res = await api.buyWithCoins(item.id);
+      updateUser({
+        nightCoins: res.balance,
+        ownedItems: [...(user?.ownedItems ?? []), item.id],
+      });
       setOwned(true);
     } catch {
       /* ignore */
@@ -62,13 +57,8 @@ export function StoreCard({ item, index = 0 }: { item: StoreItem; index?: number
   async function buyWithStripe() {
     setBuying(true);
     try {
-      if (!isDemo) {
-        const { url } = await api.createCheckoutSession(item.id);
-        redirectToCheckout(url);
-      } else {
-        // demo: just grant
-        setOwned(true);
-      }
+      const { url } = await api.createCheckoutSession(item.id);
+      window.location.href = url;
     } catch {
       /* ignore */
     } finally {
@@ -158,7 +148,7 @@ export function StoreCard({ item, index = 0 }: { item: StoreItem; index?: number
               <>
                 <span className="flex items-center gap-1.5 text-sm font-bold text-neon-gold">
                   <Sparkles size={14} className="fill-neon-gold" />
-                  {formatCoins(item.priceCoins)} ✦
+                  {formatCoins(item.priceCoins)}
                 </span>
                 <button
                   onClick={buyWithCoins}

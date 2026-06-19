@@ -133,7 +133,7 @@ export default function SettingsPage() {
 // =============================================================================
 
 function ProfileSection() {
-  const { user, updateUser, isDemo } = useAuth();
+  const { user, updateUser } = useAuth();
   const avatarInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
 
@@ -403,7 +403,7 @@ function SecuritySection() {
 // =============================================================================
 
 function NotificationsSection() {
-  const { user, updateUser, isDemo } = useAuth();
+  const { user, updateUser } = useAuth();
   const [settings, setSettings] = useState<NotificationSettings>(
     user?.notificationSettings ?? {
       push: true,

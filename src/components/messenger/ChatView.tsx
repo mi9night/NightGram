@@ -26,7 +26,6 @@ import { cn, clockTime, uid } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { useSocket } from "@/context/SocketProvider";
 import { api } from "@/lib/api";
-import { mockMessages } from "@/lib/mock";
 
 const STICKERS = ["🌙", "✨", "🔥", "💜", "😎", "🚀", "🌃", "💫", "🎧", "🦊", "👾", "💎"];
 const EMOJIS = ["👍", "❤️", "😂", "😮", "😢", "🔥", "💯", "🙏"];
@@ -40,7 +39,7 @@ export function ChatView({
   onBack: () => void;
   onToggleInfo: () => void;
 }) {
-  const { user, isDemo } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const socket = useSocket();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -57,20 +56,16 @@ export function ChatView({
   // Load history
   useEffect(() => {
     let active = true;
-    (isDemo
-      ? Promise.resolve(mockMessages(conversation.id))
-      : api.getMessages(conversation.id).catch(() => mockMessages(conversation.id))
-    ).then((data) => {
+    api.getMessages(conversation.id).catch(() => []).then((data) => {
       if (active) setMessages(data);
     });
     return () => {
       active = false;
     };
-  }, [conversation.id, isDemo]);
+  }, [conversation.id]);
 
   // Socket: incoming messages
   useEffect(() => {
-    if (isDemo) return;
     const handler = (msg: Message) => {
       if (msg.conversationId !== conversation.id) return;
       setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
@@ -84,7 +79,7 @@ export function ChatView({
       socket.off("message:new", handler);
       socket.off("typing", typingHandler);
     };
-  }, [socket, conversation.id, isDemo]);
+  }, [socket, conversation.id]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -93,7 +88,7 @@ export function ChatView({
 
   // Demo simulated reply
   useEffect(() => {
-    if (!isDemo || messages.length === 0) return;
+    return; // no auto-reply in production
     const last = messages[messages.length - 1];
     if (last.senderId !== user?.id) return;
     const t = setTimeout(() => {
@@ -117,7 +112,7 @@ export function ChatView({
     }, 900);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages, isDemo]);
+  });
 
   function send(payload: Partial<Pick<Message, "text" | "type" | "attachmentUrl">>) {
     if (!user) return;
@@ -138,19 +133,16 @@ export function ChatView({
     setReplyTo(null);
     setShowStickers(false);
 
-    if (!isDemo) {
-      socket.emit("message:send", {
+    socket.emit("message:send", {
         conversationId: conversation.id,
         text: payload.text,
         type: payload.type,
         attachmentUrl: payload.attachmentUrl,
         replyTo: replyTo?.id,
       });
-    }
   }
 
   function onTyping() {
-    if (isDemo) return;
     socket.emit("typing", { conversationId: conversation.id, isTyping: true });
   }
 
@@ -173,7 +165,7 @@ export function ChatView({
         return { ...m, reactions: [...m.reactions, { emoji, userIds: [user!.id] }] };
       }),
     );
-    if (!isDemo) socket.emit("message:react", { messageId, emoji });
+    socket.emit("message:react", { messageId, emoji });
   }
 
   const groupedReactions = useMemo(
