@@ -1,6 +1,7 @@
 // =============================================================================
 //  NightGram Web — Backend API client (Node.js + Express)
 //  Talks to the shared backend that also powers the mobile app.
+//  Includes snake_case → camelCase normalization for all responses.
 // =============================================================================
 
 import type {
@@ -15,7 +16,60 @@ import type {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
-/** Thin fetch wrapper that injects JWT + refreshes on 401. */
+// ---- snake_case → camelCase converter -------------------------------------
+
+function toCamelCase(str: string): string {
+  return str.replace(/_([a-z])/g, (_, char) => char.toUpperCase());
+}
+
+function normalize<T>(obj: unknown): T {
+  if (obj === null || obj === undefined) return obj as T;
+  if (Array.isArray(obj)) return obj.map(normalize) as T;
+  if (typeof obj === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      const camelKey = toCamelCase(key);
+      result[camelKey] = normalize(value);
+    }
+    return result as T;
+  }
+  return obj as T;
+}
+
+function normalizeUser(raw: unknown): User {
+  const u = normalize<Record<string, unknown>>(raw);
+  return {
+    id: String(u.id ?? ""),
+    ngId: Number(u.ngId ?? 10000001),
+    customId: (u.customId as string) ?? null,
+    username: String(u.username ?? ""),
+    displayName: String(u.displayName ?? u.username ?? ""),
+    email: String(u.email ?? ""),
+    avatarUrl: (u.avatarUrl as string) ?? null,
+    bannerUrl: (u.bannerUrl as string) ?? null,
+    bio: String(u.bio ?? ""),
+    nameColor: String(u.nameColor ?? "#ffffff"),
+    nameColorId: String(u.nameColorId ?? "light"),
+    isPremium: Boolean(u.isPremium ?? false),
+    premiumUntil: (u.premiumUntil as string) ?? null,
+    glowEffect: (u.glowEffect as string) ?? null,
+    avatarFrame: (u.avatarFrame as string) ?? null,
+    nightCoins: Number(u.nightCoins ?? 0),
+    followersCount: Number(u.followersCount ?? 0),
+    followingCount: Number(u.followingCount ?? 0),
+    postsCount: Number(u.postsCount ?? 0),
+    createdAt: String(u.createdAt ?? new Date().toISOString()),
+    role: (u.role as User["role"]) ?? "user",
+    ownedItems: (u.ownedItems as string[]) ?? [],
+    notificationSettings: (u.notificationSettings as User["notificationSettings"]) ?? {
+      push: true, messages: true, likes: true, comments: true,
+      newFollowers: true, storeDrops: true, sounds: true,
+    },
+  };
+}
+
+// ---- fetch wrapper ---------------------------------------------------------
+
 async function request<T>(
   path: string,
   options: RequestInit = {},
@@ -67,7 +121,7 @@ async function tryRefresh(): Promise<boolean> {
   }
 }
 
-// ---- Auth -----------------------------------------------------------------
+// ---- API methods -----------------------------------------------------------
 
 export const api = {
   async register(payload: {
@@ -75,7 +129,7 @@ export const api = {
     email: string;
     password: string;
   }): Promise<AuthSession> {
-    const data = await request<{ accessToken: string; refreshToken: string; user: User }>(
+    const data = await request<{ accessToken: string; refreshToken: string; user: unknown }>(
       "/auth/register",
       { method: "POST", body: JSON.stringify(payload) },
     );
@@ -86,7 +140,7 @@ export const api = {
     email: string;
     password: string;
   }): Promise<AuthSession> {
-    const data = await request<{ accessToken: string; refreshToken: string; user: User }>(
+    const data = await request<{ accessToken: string; refreshToken: string; user: unknown }>(
       "/auth/login",
       { method: "POST", body: JSON.stringify(payload) },
     );
@@ -94,7 +148,8 @@ export const api = {
   },
 
   async me(): Promise<User> {
-    return request<User>("/auth/me");
+    const raw = await request<unknown>("/auth/me");
+    return normalizeUser(raw);
   },
 
   async logout(): Promise<void> {
@@ -112,26 +167,31 @@ export const api = {
   async getFeed(cursor?: string, limit = 6): Promise<{ posts: Post[]; nextCursor: string | null }> {
     const qs = new URLSearchParams({ limit: String(limit) });
     if (cursor) qs.set("cursor", cursor);
-    return request(`/feed?${qs.toString()}`);
+    const raw = await request<unknown>(`/feed?${qs.toString()}`);
+    return normalize<{ posts: Post[]; nextCursor: string | null }>(raw);
   },
 
   async toggleLike(postId: string): Promise<{ liked: boolean; likesCount: number }> {
-    return request(`/posts/${postId}/like`, { method: "POST" });
+    const raw = await request<unknown>(`/posts/${postId}/like`, { method: "POST" });
+    return normalize<{ liked: boolean; likesCount: number }>(raw);
   },
 
   async toggleSave(postId: string): Promise<{ saved: boolean }> {
-    return request(`/posts/${postId}/save`, { method: "POST" });
+    const raw = await request<unknown>(`/posts/${postId}/save`, { method: "POST" });
+    return normalize<{ saved: boolean }>(raw);
   },
 
   async getComments(postId: string): Promise<Comment[]> {
-    return request(`/posts/${postId}/comments`);
+    const raw = await request<unknown[]>(`/posts/${postId}/comments`);
+    return normalize<Comment[]>(raw);
   },
 
   async addComment(postId: string, text: string): Promise<Comment> {
-    return request(`/posts/${postId}/comments`, {
+    const raw = await request<unknown>(`/posts/${postId}/comments`, {
       method: "POST",
       body: JSON.stringify({ text }),
     });
+    return normalize<Comment>(raw);
   },
 
   async viewPost(postId: string): Promise<void> {
@@ -143,65 +203,65 @@ export const api = {
     media?: { type: "image" | "video"; url: string; thumbnailUrl?: string }[];
     tags?: string[];
   }): Promise<Post> {
-    return request(`/posts`, { method: "POST", body: JSON.stringify(payload) });
+    const raw = await request<unknown>(`/posts`, { method: "POST", body: JSON.stringify(payload) });
+    return normalize<Post>(raw);
   },
 
   // ---- Messenger ----------------------------------------------------------
 
   async getConversations(): Promise<Conversation[]> {
-    return request("/conversations");
+    const raw = await request<unknown>("/conversations");
+    return normalize<Conversation[]>(raw);
   },
 
   async getMessages(conversationId: string): Promise<Message[]> {
-    return request(`/conversations/${conversationId}/messages`);
+    const raw = await request<unknown[]>(`/conversations/${conversationId}/messages`);
+    return normalize<Message[]>(raw);
   },
 
   // ---- Night Store --------------------------------------------------------
 
   async getStoreItems(): Promise<StoreItem[]> {
-    return request("/store/items");
+    const raw = await request<unknown[]>("/store/items");
+    return normalize<StoreItem[]>(raw);
   },
 
   async buyWithCoins(itemId: string): Promise<{ balance: number; owned: boolean }> {
-    return request(`/store/items/${itemId}/buy`, { method: "POST" });
+    const raw = await request<unknown>(`/store/items/${itemId}/buy`, { method: "POST" });
+    return normalize<{ balance: number; owned: boolean }>(raw);
   },
 
   async createCheckoutSession(itemId: string): Promise<{ url: string }> {
     return request(`/store/items/${itemId}/checkout`, { method: "POST" });
   },
 
-  async createPremiumCheckout(plan: "monthly" | "yearly"): Promise<{ url: string }> {
-    return request("/premium/checkout", {
-      method: "POST",
-      body: JSON.stringify({ plan }),
-    });
-  },
-
   // ---- Profile ------------------------------------------------------------
 
   async getUserProfile(username: string): Promise<User> {
-    return request(`/users/${username}`);
+    const raw = await request<unknown>(`/users/${username}`);
+    return normalizeUser(raw);
   },
 
   async getUserPosts(username: string): Promise<Post[]> {
-    return request(`/users/${username}/posts`);
+    const raw = await request<unknown[]>(`/users/${username}/posts`);
+    return normalize<Post[]>(raw);
   },
 
-  async updateProfile(payload: Partial<Pick<User, "displayName" | "bio" | "nameColor" | "avatarUrl" | "bannerUrl" | "glowEffect" | "avatarFrame" | "customId" | "notificationSettings">>): Promise<User> {
-    return request("/users/me", { method: "PATCH", body: JSON.stringify(payload) });
+  async updateProfile(payload: Partial<Pick<User, "displayName" | "bio" | "nameColor" | "nameColorId" | "avatarUrl" | "bannerUrl" | "glowEffect" | "avatarFrame" | "customId" | "notificationSettings">>): Promise<User> {
+    const raw = await request<unknown>("/users/me", { method: "PATCH", body: JSON.stringify(payload) });
+    return normalizeUser(raw);
   },
 };
 
 function normalizeSession(data: {
   accessToken: string;
   refreshToken: string;
-  user: User;
+  user: unknown;
 }): AuthSession {
   if (typeof window !== "undefined") {
     localStorage.setItem("ng_access_token", data.accessToken);
     localStorage.setItem("ng_refresh_token", data.refreshToken);
   }
-  // Decode exp from JWT (base64 payload) without verifying signature client-side.
   let expiresAt = Date.now() + 15 * 60 * 1000;
   try {
     const payload = JSON.parse(
@@ -212,7 +272,7 @@ function normalizeSession(data: {
     /* ignore */
   }
   return {
-    user: data.user,
+    user: normalizeUser(data.user),
     accessToken: data.accessToken,
     refreshToken: data.refreshToken,
     expiresAt,
