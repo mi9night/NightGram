@@ -5,7 +5,7 @@
 // =============================================================================
 
 import Link from "next/link";
-import { LifeBuoy } from "lucide-react";
+import { Headset } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function SupportButton({ className }: { className?: string }) {
@@ -18,7 +18,7 @@ export function SupportButton({ className }: { className?: string }) {
       )}
       title="Поддержка / Тикеты"
     >
-      <LifeBuoy size={17} />
+      <Headset size={17} />
     </Link>
   );
 }

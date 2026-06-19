@@ -209,7 +209,7 @@ function UsersSection() {
     owner: "#7c3aed", co_owner: "#a855f7", admin: "#ef4444", moderator: "#3b82f6", support: "#22d3ee", user: "#9ca3af", creator: "#ec4899",
   };
   const roleLabels: Record<string, string> = {
-    owner: "Владелец", co_owner: "Зам. владельца", admin: "Админ", moderator: "Модератор", support: "Саппорт", user: "Юзер", creator: "Креатор",
+    owner: "Owner", co_owner: "Co-Owner", admin: "Admin", moderator: "Moderator", support: "Support", user: "User", creator: "Creator",
   };
 
   return (
@@ -348,7 +348,7 @@ function roleColor(r: string): string {
   return m[r] ?? "#9ca3af";
 }
 function roleLabel(r: string): string {
-  const m: Record<string, string> = { owner: "Владелец", co_owner: "Зам. владельца", admin: "Админ", moderator: "Модератор", support: "Саппорт", user: "Юзер", creator: "Креатор" };
+  const m: Record<string, string> = { owner: "Owner", co_owner: "Co-Owner", admin: "Admin", moderator: "Moderator", support: "Support", user: "User", creator: "Creator" };
   return m[r] ?? r;
 }
 

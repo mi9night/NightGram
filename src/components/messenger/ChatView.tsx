@@ -410,7 +410,7 @@ export function ChatView({
             accept="image/*"
             onChange={(e) => {
               const f = e.target.files?.[0];
-              if (f) send({ text: "Фото", type: "image", attachmentUrl: URL.createObjectURL(f) });
+              // Photo upload in chat disabled until Supabase Storage is configured
             }}
           />
           <button

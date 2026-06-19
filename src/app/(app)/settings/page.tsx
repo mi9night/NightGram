@@ -153,14 +153,14 @@ function ProfileSection() {
   async function pickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const url = await uploadMedia(f, "avatars").catch(() => URL.createObjectURL(f));
+    const url = await uploadMedia(f, "avatars");
     setAvatarUrl(url);
   }
 
   async function pickBanner(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const url = await uploadMedia(f, "posts").catch(() => URL.createObjectURL(f));
+    const url = await uploadMedia(f, "posts");
     setBannerUrl(url);
   }
 
@@ -676,7 +676,7 @@ function IntegrationsSection() {
       emoji: "🎮",
       color: "#5865F2",
       type: "oauth" as const,
-      href: "https://discord.com/api/oauth2/authorize?client_id=YOUR_BOT_CLIENT_ID&redirect_uri=YOUR_REDIRECT&response_type=code&scope=identify+guilds.join",
+      href: "https://discord.gg/nightgram",
     },
     {
       id: "spotify",
@@ -685,7 +685,7 @@ function IntegrationsSection() {
       emoji: "🎵",
       color: "#1DB954",
       type: "oauth" as const,
-      href: "https://accounts.spotify.com/authorize?client_id=YOUR_SPOTIFY_CLIENT&response_type=code&redirect_uri=YOUR_REDIRECT&scope=user-read-currently-playing+user-top-read",
+      href: "https://accounts.spotify.com/",
     },
     {
       id: "soundcloud",
@@ -694,7 +694,7 @@ function IntegrationsSection() {
       emoji: "☁️",
       color: "#FF5500",
       type: "oauth" as const,
-      href: "https://api.soundcloud.com/connect?client_id=YOUR_SC_CLIENT&redirect_uri=YOUR_REDIRECT&response_type=code",
+      href: "https://soundcloud.com/",
     },
     {
       id: "vk",
