@@ -4,7 +4,8 @@
 //  NightGram Web — Premium & NightCoins purchase page
 // =============================================================================
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Crown, Sparkles, TrendingDown, Check, Palette, Image, Zap, Star, Shield, Award, Gift } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -48,9 +49,18 @@ const BENEFITS: { icon: LucideIcon; title: string; desc: string; color: string }
   { icon: Gift, title: "Ранний доступ", desc: "Первым получай новые функции, темы и эксклюзивные дропы.", color: "#6366f1" },
 ];
 
-export default function PremiumPage({ searchParams }: { searchParams?: { tab?: string } }) {
+export default function PremiumPage() {
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] grid place-items-center"><div className="h-10 w-10 rounded-full border-2 border-neon-purple/30 border-t-neon-purple animate-spin" /></div>}>
+      <PremiumPageContent />
+    </Suspense>
+  );
+}
+
+function PremiumPageContent() {
   const { user } = useAuth();
-  const initialTab = searchParams?.tab === "coins" ? "coins" : "premium";
+  const searchParams = useSearchParams();
+  const initialTab = searchParams.get("tab") === "coins" ? "coins" : "premium";
   const [tab, setTab] = useState<"premium" | "coins">(initialTab);
   const [paymentItem, setPaymentItem] = useState<PaymentItem | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
