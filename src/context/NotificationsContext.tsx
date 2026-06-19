@@ -37,12 +37,16 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const token = typeof window !== "undefined" ? localStorage.getItem("ng_access_token") : null;
     if (!token) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/notifications`, {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
+    fetch(`${apiUrl}/notifications`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((data: AppNotification[]) => {
-        if (Array.isArray(data) && data.length > 0) setNotifications(data);
+      .then((r) => {
+        if (!r.ok) return [];
+        return r.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data)) setNotifications(data);
       })
       .catch(() => {});
   }, []);

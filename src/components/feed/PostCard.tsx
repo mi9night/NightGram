@@ -116,7 +116,7 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
       {post.text && <PostText text={post.text} />}
 
       {/* Media */}
-      {post.media.length > 0 && (
+      {post.media && post.media.length > 0 && (
         <div className="relative px-4">
           <div className={cn("relative overflow-hidden rounded-3xl", post.media.length > 1 ? "grid grid-cols-2 gap-1" : "")}>
             {post.media.map((m) => (
@@ -141,7 +141,7 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
       )}
 
       {/* Tags */}
-      {post.tags.length > 0 && (
+      {post.tags && post.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5 px-4 pt-3">
           {post.tags.map((t) => (
             <span key={t} className="text-xs text-neon-purple/90 hover:text-neon-purple cursor-pointer">

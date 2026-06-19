@@ -259,3 +259,8 @@ router.patch("/users/:id/verify", requireAdmin, async (req, res) => {
 
   res.json({ ok: true, verified, username: data?.username });
 });
+
+// GET /api/admin/notifications — placeholder (returns empty array for now)
+router.get("/notifications", requireAdmin, async (req, res) => {
+  res.json([]);
+});
