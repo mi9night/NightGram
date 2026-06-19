@@ -9,7 +9,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Play, Pause, SkipForward, SkipBack, Search, Heart, Radio,
-  Sparkles, ListMusic, Volume2, Shuffle, Repeat, X
+  Sparkles, ListMusic, Shuffle, Repeat, X
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -39,14 +39,12 @@ export default function MusicPage() {
   const [repeat, setRepeat] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Simulate progress
   useEffect(() => {
     if (playing && currentTrack) {
       intervalRef.current = setInterval(() => {
         setProgress((p) => {
           if (p >= currentTrack.duration) {
             if (repeat) return 0;
-            // next track
             const idx = TRACKS.findIndex((t) => t.id === currentTrack.id);
             const nextIdx = shuffle ? Math.floor(Math.random() * TRACKS.length) : (idx + 1) % TRACKS.length;
             setCurrentTrack(TRACKS[nextIdx]);
@@ -101,7 +99,6 @@ export default function MusicPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 pb-32">
-      {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
         <h1 className="font-display font-bold text-2xl flex items-center gap-2">
           <ListMusic size={22} className="text-neon-purple" /> Музыка
@@ -109,37 +106,25 @@ export default function MusicPage() {
         <p className="text-sm text-white/45">Слушай треки прямо в NightGram</p>
       </motion.div>
 
-      {/* Tabs */}
       <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 mb-4">
         {tabs.map((t) => {
           const Icon = t.icon;
           return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={cn(
-                "flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm whitespace-nowrap transition",
-                tab === t.id
-                  ? "bg-neon-purple/20 text-white border border-neon-purple/40 shadow-glow"
-                  : "glass text-white/55 hover:text-white",
-              )}
-            >
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={cn("flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm whitespace-nowrap transition",
+                tab === t.id ? "bg-neon-purple/20 text-white border border-neon-purple/40 shadow-glow" : "glass text-white/55 hover:text-white")}>
               <Icon size={15} /> {t.label}
             </button>
           );
         })}
       </div>
 
-      {/* Search bar */}
       {tab === "search" && (
         <div className="relative mb-4">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-          <input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+          <input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Поиск треков и исполнителей…"
-            className="w-full rounded-xl glass pl-9 pr-9 py-2.5 text-sm outline-none focus:border-neon-purple/40"
-          />
+            className="w-full rounded-xl glass pl-9 pr-9 py-2.5 text-sm outline-none focus:border-neon-purple/40" />
           {searchQuery && (
             <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white">
               <X size={15} />
@@ -148,32 +133,11 @@ export default function MusicPage() {
         </div>
       )}
 
-      {/* Track list */}
       <AnimatePresence mode="wait">
-        <motion.div
-          key={tab}
-          initial={{ opacity: 0, x: 15 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -15 }}
-          transition={{ duration: 0.2 }}
-          className="space-y-2"
-        >
+        <motion.div key={tab} initial={{ opacity: 0, x: 15 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -15 }} transition={{ duration: 0.2 }} className="space-y-2">
+          {/* ===== МОЯ ВОЛНА — большая анимированная плашка ===== */}
           {tab === "wave" && (
-            <div className="rounded-2xl glass-strong p-4 mb-3 flex items-center gap-3">
-              <div className="h-12 w-12 rounded-xl grid place-items-center shrink-0" style={{ background: "linear-gradient(135deg,#a855f7,#ec4899)" }}>
-                <Radio size={22} className="text-white" />
-              </div>
-              <div className="flex-1">
-                <div className="font-display font-bold">Моя волна</div>
-                <div className="text-xs text-white/45">Бесконечный поток музыки на основе твоих вкусов</div>
-              </div>
-              <button
-                onClick={() => currentTrack ? setPlaying((v) => !v) : playTrack(TRACKS[0])}
-                className="btn-glow h-11 w-11 rounded-full grid place-items-center shrink-0"
-              >
-                {playing ? <Pause size={20} className="fill-white" /> : <Play size={20} className="fill-white ml-0.5" />}
-              </button>
-            </div>
+            <WaveBanner playing={playing} onToggle={() => currentTrack ? setPlaying((v) => !v) : playTrack(TRACKS[0])} />
           )}
 
           {tab === "recommendations" && (
@@ -199,30 +163,18 @@ export default function MusicPage() {
             const isCurrent = currentTrack?.id === track.id;
             const isLiked = liked.has(track.id);
             return (
-              <motion.div
-                key={track.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: Math.min(i * 0.04, 0.3) }}
-                className={cn(
-                  "flex items-center gap-3 rounded-xl p-2.5 transition cursor-pointer",
-                  isCurrent ? "glass-strong" : "hover:bg-white/5",
-                )}
-                onClick={() => playTrack(track)}
-              >
-                {/* Cover + play */}
+              <motion.div key={track.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.04, 0.3) }}
+                className={cn("flex items-center gap-3 rounded-xl p-2.5 transition cursor-pointer", isCurrent ? "glass-strong" : "hover:bg-white/5")}
+                onClick={() => playTrack(track)}>
                 <div className="relative h-11 w-11 rounded-lg overflow-hidden shrink-0" style={{ background: track.cover }}>
                   {isCurrent && playing ? (
                     <div className="absolute inset-0 grid place-items-center bg-black/40">
                       <div className="flex items-end gap-0.5 h-4">
                         {[0, 1, 2, 3].map((b) => (
-                          <motion.span
-                            key={b}
-                            className="w-0.5 bg-white rounded-full"
+                          <motion.span key={b} className="w-0.5 bg-white rounded-full"
                             animate={{ height: ["30%", "100%", "50%", "80%", "30%"] }}
                             transition={{ duration: 0.8, repeat: Infinity, delay: b * 0.15 }}
-                            style={{ height: "40%" }}
-                          />
+                            style={{ height: "40%" }} />
                         ))}
                       </div>
                     </div>
@@ -232,24 +184,14 @@ export default function MusicPage() {
                     </div>
                   )}
                 </div>
-
-                {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className={cn("text-sm font-medium truncate", isCurrent && "text-neon-purple")}>
-                    {track.title}
-                  </div>
+                  <div className={cn("text-sm font-medium truncate", isCurrent && "text-neon-purple")}>{track.title}</div>
                   <div className="text-xs text-white/45 truncate">{track.artist}</div>
                 </div>
-
-                {/* Like */}
-                <button
-                  onClick={(e) => { e.stopPropagation(); toggleLike(track.id); }}
-                  className={cn("shrink-0 transition", isLiked ? "text-neon-pink" : "text-white/40 hover:text-white")}
-                >
+                <button onClick={(e) => { e.stopPropagation(); toggleLike(track.id); }}
+                  className={cn("shrink-0 transition", isLiked ? "text-neon-pink" : "text-white/40 hover:text-white")}>
                   <Heart size={16} className={isLiked ? "fill-current" : ""} />
                 </button>
-
-                {/* Duration */}
                 <span className="text-xs text-white/35 shrink-0 tabular-nums">{fmt(track.duration)}</span>
               </motion.div>
             );
@@ -257,90 +199,57 @@ export default function MusicPage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Player bar — fixed at bottom */}
+      {/* Player bar */}
       <AnimatePresence>
         {currentTrack && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 260, damping: 28 }}
-            className="fixed bottom-16 md:bottom-4 left-4 right-4 z-40"
-          >
+          <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 260, damping: 28 }} className="fixed bottom-16 md:bottom-4 left-4 right-4 z-40">
             <div className="max-w-2xl mx-auto ng-solid rounded-2xl p-3 shadow-glow-lg">
-              {/* Progress bar */}
               <div className="flex items-center gap-3">
-                {/* Cover */}
                 <div className="h-10 w-10 rounded-lg shrink-0" style={{ background: currentTrack.cover }} />
-
-                {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{currentTrack.title}</div>
                   <div className="text-xs text-white/45 truncate">{currentTrack.artist}</div>
                 </div>
-
-                {/* Controls */}
                 <div className="flex items-center gap-1 shrink-0">
-                  <button
-                    onClick={() => setShuffle((v) => !v)}
-                    className={cn("grid place-items-center h-8 w-8 rounded-lg transition", shuffle ? "text-neon-purple bg-neon-purple/10" : "text-white/50 hover:text-white")}
-                  >
+                  <button onClick={() => setShuffle((v) => !v)}
+                    className={cn("grid place-items-center h-8 w-8 rounded-lg transition", shuffle ? "text-neon-purple bg-neon-purple/10" : "text-white/50 hover:text-white")}>
                     <Shuffle size={15} />
                   </button>
-                  <button
-                    onClick={() => {
+                  <button onClick={() => {
                       const idx = TRACKS.findIndex((t) => t.id === currentTrack.id);
-                      setCurrentTrack(TRACKS[(idx - 1 + TRACKS.length) % TRACKS.length]);
-                      setProgress(0);
+                      setCurrentTrack(TRACKS[(idx - 1 + TRACKS.length) % TRACKS.length]); setProgress(0);
                     }}
-                    className="grid place-items-center h-8 w-8 rounded-lg text-white/60 hover:text-white transition"
-                  >
+                    className="grid place-items-center h-8 w-8 rounded-lg text-white/60 hover:text-white transition">
                     <SkipBack size={16} className="fill-current" />
                   </button>
-                  <button
-                    onClick={() => setPlaying((v) => !v)}
-                    className="grid place-items-center h-10 w-10 rounded-full btn-glow"
-                  >
+                  <button onClick={() => setPlaying((v) => !v)} className="grid place-items-center h-10 w-10 rounded-full btn-glow">
                     {playing ? <Pause size={18} className="fill-white" /> : <Play size={18} className="fill-white ml-0.5" />}
                   </button>
-                  <button
-                    onClick={() => {
+                  <button onClick={() => {
                       const idx = TRACKS.findIndex((t) => t.id === currentTrack.id);
                       const nextIdx = shuffle ? Math.floor(Math.random() * TRACKS.length) : (idx + 1) % TRACKS.length;
-                      setCurrentTrack(TRACKS[nextIdx]);
-                      setProgress(0);
+                      setCurrentTrack(TRACKS[nextIdx]); setProgress(0);
                     }}
-                    className="grid place-items-center h-8 w-8 rounded-lg text-white/60 hover:text-white transition"
-                  >
+                    className="grid place-items-center h-8 w-8 rounded-lg text-white/60 hover:text-white transition">
                     <SkipForward size={16} className="fill-current" />
                   </button>
-                  <button
-                    onClick={() => setRepeat((v) => !v)}
-                    className={cn("grid place-items-center h-8 w-8 rounded-lg transition", repeat ? "text-neon-purple bg-neon-purple/10" : "text-white/50 hover:text-white")}
-                  >
+                  <button onClick={() => setRepeat((v) => !v)}
+                    className={cn("grid place-items-center h-8 w-8 rounded-lg transition", repeat ? "text-neon-purple bg-neon-purple/10" : "text-white/50 hover:text-white")}>
                     <Repeat size={15} />
                   </button>
                 </div>
               </div>
-
-              {/* Progress */}
               <div className="flex items-center gap-2 mt-2">
                 <span className="text-[10px] text-white/35 tabular-nums w-8">{fmt(progress)}</span>
-                <div
-                  className="flex-1 h-1 rounded-full bg-white/10 cursor-pointer"
+                <div className="flex-1 h-1 rounded-full bg-white/10 cursor-pointer"
                   onClick={(e) => {
                     const rect = e.currentTarget.getBoundingClientRect();
                     const pct = (e.clientX - rect.left) / rect.width;
                     setProgress(Math.floor(pct * currentTrack.duration));
-                  }}
-                >
-                  <div
-                    className="h-full rounded-full"
-                    style={{
-                      width: `${(progress / currentTrack.duration) * 100}%`,
-                      background: "linear-gradient(90deg, var(--accent-main), var(--accent-secondary))",
-                    }}
-                  />
+                  }}>
+                  <div className="h-full rounded-full"
+                    style={{ width: `${(progress / currentTrack.duration) * 100}%`, background: "linear-gradient(90deg, var(--accent-main), var(--accent-secondary))" }} />
                 </div>
                 <span className="text-[10px] text-white/35 tabular-nums w-8">{fmt(currentTrack.duration)}</span>
               </div>
@@ -349,5 +258,95 @@ export default function MusicPage() {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+// =============================================================================
+//  WaveBanner — большая анимированная плашка "Моя волна" (как в VK)
+// =============================================================================
+
+function WaveBanner({ playing, onToggle }: { playing: boolean; onToggle: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: "spring", stiffness: 100, damping: 15 }}
+      className="relative overflow-hidden rounded-4xl mb-4"
+      style={{ minHeight: 200 }}
+    >
+      {/* Animated gradient background */}
+      <motion.div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7, #ec4899, #f59e0b, #6366f1)",
+          backgroundSize: "300% 300%",
+        }}
+        animate={{
+          backgroundPosition: ["0% 50%", "50% 0%", "100% 50%", "50% 100%", "0% 50%"],
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+      />
+
+      {/* Floating orbs */}
+      <motion.div
+        className="absolute top-4 left-4 h-20 w-20 rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(255,255,255,0.3), transparent 70%)" }}
+        animate={{ y: [0, -15, 0], x: [0, 10, 0] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute bottom-4 right-8 h-24 w-24 rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(255,255,255,0.2), transparent 70%)" }}
+        animate={{ y: [0, 20, 0], x: [0, -15, 0] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute top-1/2 left-1/3 h-16 w-16 rounded-full"
+        style={{ background: "radial-gradient(circle, rgba(255,255,255,0.15), transparent 70%)" }}
+        animate={{ y: [0, 25, 0], x: [0, 20, 0] }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* Equalizer bars overlay (when playing) */}
+      {playing && (
+        <div className="absolute inset-0 flex items-end justify-center gap-1 opacity-30 pb-8">
+          {Array.from({ length: 24 }).map((_, i) => (
+            <motion.div
+              key={i}
+              className="w-2 bg-white rounded-t-full"
+              animate={{ height: ["10%", `${30 + Math.random() * 70}%`, "10%"] }}
+              transition={{ duration: 0.5 + Math.random() * 0.5, repeat: Infinity, delay: i * 0.05 }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Content */}
+      <div className="relative z-10 flex flex-col items-center justify-center p-8 text-center" style={{ minHeight: 200 }}>
+        <motion.div
+          animate={playing ? { rotate: 360 } : {}}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          className="h-16 w-16 rounded-full bg-white/20 backdrop-blur-md grid place-items-center mb-4"
+        >
+          <Radio size={32} className="text-white" />
+        </motion.div>
+
+        <h2 className="font-display font-bold text-2xl text-white drop-shadow-lg">Моя волна</h2>
+        <p className="text-white/80 text-sm mt-1 drop-shadow">Бесконечный поток музыки на основе твоих вкусов</p>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={onToggle}
+          className="mt-5 h-14 w-14 rounded-full bg-white grid place-items-center shadow-2xl"
+        >
+          {playing ? (
+            <Pause size={26} className="fill-purple-600 text-purple-600" />
+          ) : (
+            <Play size={26} className="fill-purple-600 text-purple-600 ml-1" />
+          )}
+        </motion.button>
+      </div>
+    </motion.div>
   );
 }

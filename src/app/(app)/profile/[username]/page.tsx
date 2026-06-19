@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Grid3x3,
+  Grid3x3, UserPlus, Ban,
   ShoppingBag,
   Send,
   Pencil,
@@ -205,13 +205,21 @@ export default function ProfilePage({
                 </button>
               </div>
             ) : (
-              <div className="flex gap-2 pb-1">
-                <button className="btn-glow px-5 py-2.5 text-sm">Подписаться</button>
+              <div className="flex gap-2 pb-1 flex-wrap">
+                <button className="btn-glow px-4 py-2.5 text-sm flex items-center gap-1.5">
+                  <UserPlus size={15} /> В друзья
+                </button>
                 <button
                   onClick={() => router.push("/messages")}
-                  className="btn-ghost px-4 py-2.5 text-sm"
+                  className="btn-glow px-4 py-2.5 text-sm flex items-center gap-1.5"
                 >
-                  <Send size={15} />
+                  <Send size={15} /> Написать
+                </button>
+                <button className="btn-ghost px-3 py-2.5 text-sm" title="В избранные">
+                  <Star size={15} />
+                </button>
+                <button className="btn-ghost px-3 py-2.5 text-sm" title="В ЧС">
+                  <Ban size={15} />
                 </button>
               </div>
             )}

@@ -151,3 +151,63 @@ CREATE POLICY "Authenticated update" ON storage.objects
   FOR UPDATE
   TO authenticated
   USING (bucket_id = 'nightgram-media');
+
+-- ===== 9. SOCIAL TABLES (friends, favorites, blacklist, channels, groups) =====
+
+-- Friends (follow/mutual)
+CREATE TABLE IF NOT EXISTS public.friends (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  friend_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  status text DEFAULT 'pending' CHECK (status IN ('pending','accepted','blocked')),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(user_id, friend_id)
+);
+CREATE INDEX IF NOT EXISTS idx_friends_user ON public.friends (user_id);
+CREATE INDEX IF NOT EXISTS idx_friends_friend ON public.friends (friend_id);
+ALTER TABLE public.friends ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "friends all" ON public.friends FOR ALL USING (true) WITH CHECK (true);
+
+-- Favorites
+CREATE TABLE IF NOT EXISTS public.favorites (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  target_user_id uuid NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE(user_id, target_user_id)
+);
+ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "favorites all" ON public.favorites FOR ALL USING (true) WITH CHECK (true);
+
+-- Channels
+CREATE TABLE IF NOT EXISTS public.channels (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name text NOT NULL,
+  handle text UNIQUE,
+  avatar_url text,
+  description text DEFAULT '',
+  owner_id uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  subscribers_count integer DEFAULT 0,
+  verified boolean DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.channels ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "channels read" ON public.channels FOR SELECT USING (true);
+CREATE POLICY "channels insert" ON public.channels FOR INSERT WITH CHECK (true);
+CREATE POLICY "channels update" ON public.channels FOR UPDATE USING (true);
+
+-- Groups
+CREATE TABLE IF NOT EXISTS public.groups (
+  id uuid PRIMARY KEY DEFAULT uuid_generate_v4(),
+  name text NOT NULL,
+  description text DEFAULT '',
+  avatar_url text,
+  owner_id uuid REFERENCES public.users(id) ON DELETE SET NULL,
+  members_count integer DEFAULT 0,
+  is_private boolean DEFAULT false,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.groups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "groups read" ON public.groups FOR SELECT USING (true);
+CREATE POLICY "groups insert" ON public.groups FOR INSERT WITH CHECK (true);
+CREATE POLICY "groups update" ON public.groups FOR UPDATE USING (true);
