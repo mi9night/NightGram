@@ -75,7 +75,7 @@ export function StoreCard({ item, index = 0 }: { item: StoreItem; index?: number
       className="relative group"
     >
       <div
-        className="relative gradient-border rounded-4xl glass-strong overflow-hidden h-full flex flex-col"
+        className="relative gradient-border rounded-4xl glass-strong overflow-visible h-full flex flex-col"
         style={{ boxShadow: rarity.glow }}
       >
         {/* Preview */}

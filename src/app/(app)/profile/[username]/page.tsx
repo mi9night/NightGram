@@ -414,7 +414,7 @@ function ProfileAwards({ isPremium, ownedCount }: { isPremium: boolean; ownedCou
               <div
                 key={a.label}
                 className={cn(
-                  "group relative flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 transition cursor-default",
+                  "group relative flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 transition cursor-default overflow-visible",
                   isUnlocked ? "glass" : "border border-dashed border-white/10",
                 )}
                 style={

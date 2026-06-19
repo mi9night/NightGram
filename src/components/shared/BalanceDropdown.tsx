@@ -71,7 +71,7 @@ export function BalanceDropdown() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-12 z-[70] w-72 ng-solid rounded-2xl overflow-hidden shadow-glow-lg"
+            className="absolute right-0 top-12 z-[70] w-72 ng-solid rounded-2xl shadow-glow-lg"
           >
             {/* Balance */}
             <div className="p-4 border-b ng-divider">

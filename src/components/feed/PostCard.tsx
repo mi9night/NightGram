@@ -72,7 +72,7 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: Math.min(index * 0.06, 0.3), ease: [0.16, 1, 0.3, 1] }}
       whileHover={{ y: -3 }}
-      className="gradient-border rounded-4xl glass-strong overflow-hidden"
+      className="gradient-border rounded-4xl glass-strong overflow-visible"
     >
       {/* Header */}
       <div className="flex items-center gap-3 p-4">

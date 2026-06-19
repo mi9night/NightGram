@@ -121,7 +121,7 @@ function PremiumPageContent() {
                 key={plan.id}
                 whileHover={{ y: -4 }}
                 className={cn(
-                  "relative rounded-3xl p-5 flex flex-col items-center text-center transition",
+                  "relative rounded-3xl p-5 flex flex-col items-center text-center transition overflow-visible",
                   plan.best ? "gradient-border glass-strong" : "glass",
                 )}
                 style={plan.best ? { boxShadow: "0 0 30px rgba(251,191,36,0.15)" } : undefined}
@@ -227,7 +227,7 @@ function PremiumPageContent() {
                 key={pack.coins}
                 whileHover={{ y: -3 }}
                 className={cn(
-                  "relative rounded-2xl p-4 flex flex-col items-center text-center transition",
+                  "relative rounded-2xl p-4 flex flex-col items-center text-center transition overflow-visible",
                   pack.best ? "gradient-border glass-strong" : "glass",
                 )}
               >

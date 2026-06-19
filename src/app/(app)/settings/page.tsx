@@ -513,7 +513,7 @@ function AppearanceSection() {
                 key={t.id}
                 onClick={() => setTheme(t.id)}
                 className={cn(
-                  "group relative aspect-square rounded-2xl overflow-hidden transition border-2",
+                  "group relative aspect-square rounded-2xl overflow-visible transition border-2",
                   active ? "border-white scale-[1.04] shadow-glow" : "border-white/10 hover:border-white/30",
                 )}
                 style={{ background: t.swatch, backgroundColor: t.bgColor }}
