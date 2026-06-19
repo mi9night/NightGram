@@ -17,7 +17,7 @@ import {
   Eye,
   MoreHorizontal,
   Play,
-  BadgeCheck,
+  Crown,
 } from "lucide-react";
 import type { Post } from "@/types";
 import { GlowAvatar } from "@/components/shared/GlowAvatar";
@@ -93,7 +93,9 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
             >
               {displayName}
             </button>
-            {verified && <BadgeCheck size={15} className="text-neon-purple shrink-0" />}
+            {authorUser?.isPremium && (
+              <Crown size={15} className="shrink-0" style={{ color: "#fbbf24" }} fill="rgba(251,191,36,0.3)" />
+            )}
             {authorUser?.role && authorUser.role !== "user" && (
               <RoleBadge role={authorUser.role} size={16} />
             )}
