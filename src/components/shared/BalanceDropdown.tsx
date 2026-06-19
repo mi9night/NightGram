@@ -1,13 +1,14 @@
 "use client";
 
 // =============================================================================
-//  BalanceDropdown — expandable panel showing NightCoins + Premium status
+//  BalanceDropdown — expandable panel with coins + premium
+//  Notification bell sits ON TOP (higher z-index)
 // =============================================================================
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Crown, ChevronDown, Plus } from "lucide-react";
+import { Sparkles, Crown, ChevronDown, Plus, Clock } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
 
@@ -28,7 +29,9 @@ export function BalanceDropdown() {
 
   // Format premium end date
   const premiumEnd = user.premiumUntil ? new Date(user.premiumUntil) : null;
-  const premiumEndStr = premiumEnd ? premiumEnd.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }) : null;
+  const premiumEndStr = premiumEnd
+    ? premiumEnd.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })
+    : null;
 
   return (
     <div className="relative" ref={ref}>
@@ -37,16 +40,13 @@ export function BalanceDropdown() {
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 rounded-full glass px-3 py-1.5 text-sm transition hover:brightness-125"
       >
-        {/* Coins */}
         <span className="flex items-center gap-1.5 text-neon-gold font-semibold">
           <Sparkles size={14} className="fill-neon-gold text-neon-gold" />
           {(user.nightCoins ?? 0).toLocaleString("ru-RU")}
         </span>
 
-        {/* Divider */}
         <span className="h-4 w-px bg-white/15" />
 
-        {/* Premium */}
         {user.isPremium ? (
           <span className="flex items-center gap-1 font-semibold" style={{ color: "#fbbf24" }}>
             <Crown size={13} className="fill-[#fbbf24]" /> Premium
@@ -57,13 +57,10 @@ export function BalanceDropdown() {
           </span>
         )}
 
-        <ChevronDown
-          size={14}
-          className={cn("text-white/40 transition", open ? "rotate-180" : "")}
-        />
+        <ChevronDown size={14} className={cn("text-white/40 transition", open ? "rotate-180" : "")} />
       </button>
 
-      {/* Dropdown panel */}
+      {/* Dropdown — notification bell on top */}
       <AnimatePresence>
         {open && (
           <motion.div
@@ -76,11 +73,9 @@ export function BalanceDropdown() {
             {/* Balance */}
             <div className="p-4 border-b ng-divider">
               <div className="text-xs text-white/45 mb-1">Твой баланс</div>
-              <div className="flex items-center gap-2">
-                <span className="font-display font-bold text-2xl text-neon-gold">
-                  {(user.nightCoins ?? 0).toLocaleString("ru-RU")} ✦
-                </span>
-              </div>
+              <span className="font-display font-bold text-2xl text-neon-gold">
+                {(user.nightCoins ?? 0).toLocaleString("ru-RU")} ✦
+              </span>
               <Link
                 href="/store/premium?tab=coins"
                 onClick={() => setOpen(false)}
@@ -90,41 +85,41 @@ export function BalanceDropdown() {
               </Link>
             </div>
 
-            {/* Premium status */}
+            {/* Premium — always shows status + date + buy button */}
             <div className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-white/45">Premium</span>
-                {user.isPremium ? (
-                  <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                    style={{ background: "rgba(251,191,36,0.15)", color: "#fbbf24" }}>
-                    Активен
-                  </span>
-                ) : (
-                  <span className="rounded-full px-2 py-0.5 text-[10px] font-bold"
-                    style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }}>
-                    Не активен
-                  </span>
-                )}
+                <span
+                  className="rounded-full px-2 py-0.5 text-[10px] font-bold"
+                  style={
+                    user.isPremium
+                      ? { background: "rgba(251,191,36,0.15)", color: "#fbbf24" }
+                      : { background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.4)" }
+                  }
+                >
+                  {user.isPremium ? "Активен" : "Не активен"}
+                </span>
               </div>
-              {user.isPremium ? (
-                <div>
-                  <p className="text-xs text-white/50">Спасибо за поддержку! ✦</p>
-                  {premiumEndStr && (
-                    <p className="text-[11px] text-white/35 mt-1">
-                      Окончание: {premiumEndStr}
-                    </p>
-                  )}
+
+              {user.isPremium && premiumEndStr ? (
+                <div className="flex items-center gap-1.5 mb-3">
+                  <Clock size={12} className="text-white/40" />
+                  <span className="text-[11px] text-white/50">До {premiumEndStr}</span>
                 </div>
               ) : (
-                <Link
-                  href="/store/premium?tab=premium"
-                  onClick={() => setOpen(false)}
-                  className="block mt-2 rounded-xl p-3 text-center text-sm font-semibold transition hover:brightness-110"
-                  style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#1a1206" }}
-                >
-                  <Crown size={14} className="inline mr-1" /> Купить Premium
-                </Link>
+                <p className="text-xs text-white/50 mb-3">Подписка не активирована</p>
               )}
+
+              {/* Buy/extend button — always visible */}
+              <Link
+                href="/store/premium?tab=premium"
+                onClick={() => setOpen(false)}
+                className="block rounded-xl p-3 text-center text-sm font-semibold transition hover:brightness-110"
+                style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#1a1206" }}
+              >
+                <Crown size={14} className="inline mr-1" />
+                {user.isPremium ? "Продлить Premium" : "Купить Premium"}
+              </Link>
             </div>
           </motion.div>
         )}

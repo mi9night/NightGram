@@ -685,7 +685,7 @@ function IntegrationsSection() {
       emoji: "🎵",
       color: "#1DB954",
       type: "oauth" as const,
-      href: "https://accounts.spotify.com/",
+      href: "https://accounts.spotify.com/oauth/authorize?client_id=nightgram&response_type=code&redirect_uri=https://night-gram.vercel.app/integrations/spotify&scope=user-read-currently-playing+user-top-read+playlist-read-private",
     },
     {
       id: "soundcloud",
@@ -694,7 +694,7 @@ function IntegrationsSection() {
       emoji: "☁️",
       color: "#FF5500",
       type: "oauth" as const,
-      href: "https://soundcloud.com/",
+      href: "https://soundcloud.com/connect?client_id=nightgram&redirect_uri=https://night-gram.vercel.app/integrations/soundcloud&response_type=code&scope=non-expiring",
     },
     {
       id: "vk",

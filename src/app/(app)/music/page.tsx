@@ -16,14 +16,14 @@ import { cn } from "@/lib/utils";
 
 // ---- Mock tracks ----
 const TRACKS = [
-  { id: "t1", title: "Midnight Drive", artist: "Neon Pulse", duration: 215, cover: "linear-gradient(135deg,#a855f7,#ec4899)" },
-  { id: "t2", title: "Aurora", artist: "Lumen", duration: 184, cover: "linear-gradient(135deg,#22d3ee,#6366f1)" },
-  { id: "t3", title: "Nightcall", artist: "Vex", duration: 243, cover: "linear-gradient(135deg,#fbbf24,#f59e0b)" },
-  { id: "t4", title: "Starlight", artist: "Nova Aurora", duration: 198, cover: "linear-gradient(135deg,#ec4899,#8b5cf6)" },
-  { id: "t5", title: "Echoes", artist: "Synthwave Co", duration: 312, cover: "linear-gradient(135deg,#6366f1,#a855f7)" },
-  { id: "t6", title: "Velvet Sky", artist: "Ember Vale", duration: 167, cover: "linear-gradient(135deg,#10b981,#06b6d4)" },
-  { id: "t7", title: "Lost in Neon", artist: "Kestrel", duration: 224, cover: "linear-gradient(135deg,#f97316,#ef4444)" },
-  { id: "t8", title: "Dreamscape", artist: "Midnight Crew", duration: 289, cover: "linear-gradient(135deg,#8b5cf6,#3b82f6)" },
+  { id: "t1", title: "Midnight Drive", artist: "Neon Pulse", duration: 15, cover: "linear-gradient(135deg,#a855f7,#ec4899)", audio: "https://commondatastorage.googleapis.com/codeskulptor-assets/Epoq-Lepidoptera.ogg" },
+  { id: "t2", title: "Aurora", artist: "Lumen", duration: 91, cover: "linear-gradient(135deg,#22d3ee,#6366f1)", audio: "https://commondatastorage.googleapis.com/codeskulptor-assets/week3-POP-remix.ogg" },
+  { id: "t3", title: "Nightcall", artist: "Vex", duration: 68, cover: "linear-gradient(135deg,#fbbf24,#f59e0b)", audio: "https://commondatastorage.googleapis.com/codeskulptor-assets/Action_RPG.ogg" },
+  { id: "t4", title: "Starlight", artist: "Nova Aurora", duration: 15, cover: "linear-gradient(135deg,#ec4899,#8b5cf6)", audio: "https://commondatastorage.googleapis.com/codeskulptor-assets/Evillaugh.ogg" },
+  { id: "t5", title: "Echoes", artist: "Synthwave Co", duration: 94, cover: "linear-gradient(135deg,#6366f1,#a855f7)", audio: "https://commondatastorage.googleapis.com/codeskulptor-assets/OzzyLizardKing.ogg" },
+  { id: "t6", title: "Velvet Sky", artist: "Ember Vale", duration: 83, cover: "linear-gradient(135deg,#10b981,#06b6d4)", audio: "https://commondatastorage.googleapis.com/codeskulptor-assets/sky_and_sand.ogg" },
+  { id: "t7", title: "Lost in Neon", artist: "Kestrel", duration: 95, cover: "linear-gradient(135deg,#f97316,#ef4444)", audio: "https://commondatastorage.googleapis.com/codeskulptor-assets/Jump.ogg" },
+  { id: "t8", title: "Dreamscape", artist: "Midnight Crew", duration: 110, cover: "linear-gradient(135deg,#8b5cf6,#3b82f6)", audio: "https://commondatastorage.googleapis.com/codeskulptor-assets/pypilot.ogg" },
 ];
 
 type Tab = "wave" | "recommendations" | "search" | "saved";
@@ -38,6 +38,29 @@ export default function MusicPage() {
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Create audio element
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.volume = 0.7;
+    }
+    return () => {
+      if (audioRef.current) audioRef.current.pause();
+    };
+  }, []);
+
+  // Play/pause real audio when track changes
+  useEffect(() => {
+    if (!audioRef.current) return;
+    if (playing && currentTrack?.audio) {
+      audioRef.current.src = currentTrack.audio;
+      audioRef.current.play().catch(() => {});
+    } else {
+      audioRef.current.pause();
+    }
+  }, [playing, currentTrack]);
 
   useEffect(() => {
     if (playing && currentTrack) {

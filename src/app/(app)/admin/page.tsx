@@ -492,7 +492,7 @@ function FinanceSection() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { const data = await api.getPurchaseRequests(filter); setRequests(data as Record<string, unknown>[]); } catch { setRequests([]); }
+    try { const data = await Promise.race([api.getPurchaseRequests(filter), new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 5000))]); setRequests(data as Record<string, unknown>[]); } catch { setRequests([]); }
     setLoading(false);
   }, [filter]);
 

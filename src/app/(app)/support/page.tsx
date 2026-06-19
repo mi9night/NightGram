@@ -10,7 +10,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  LifeBuoy, ChevronLeft, Plus, X, Send, Loader2,
+  Headset, ChevronLeft, Plus, X, Send, Loader2,
   Ticket as TicketIcon, MessageCircle, Check,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -151,7 +151,7 @@ export default function SupportPage() {
         </button>
         <div className="flex-1">
           <h1 className="font-display font-bold text-2xl flex items-center gap-2">
-            <LifeBuoy size={22} className="text-neon-purple" /> Поддержка
+            <Headset size={22} className="text-neon-purple" /> Поддержка
           </h1>
           <p className="text-sm text-white/45">Тикеты и помощь</p>
         </div>
@@ -247,7 +247,7 @@ export default function SupportPage() {
           /* Empty state — no tickets yet */
           <motion.div key="empty" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex flex-col items-center gap-4 py-16 text-center">
             <div className="h-20 w-20 rounded-full gradient-border grid place-items-center shadow-glow">
-              <LifeBuoy size={36} className="text-neon-purple" />
+              <Headset size={36} className="text-neon-purple" />
             </div>
             <div>
               <h3 className="font-display font-bold text-xl">Нужна помощь?</h3>
