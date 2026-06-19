@@ -28,5 +28,5 @@ export const NAME_COLORS: NameColorPreset[] = (() => {
 })();
 
 /** The default (free) name color — always available without Premium. */
-export const FREE_NAME_COLOR = "#a855f7";
-export const FREE_NAME_COLOR_ID = "night";
+export const FREE_NAME_COLOR = "#ffffff";
+export const FREE_NAME_COLOR_ID = "light";

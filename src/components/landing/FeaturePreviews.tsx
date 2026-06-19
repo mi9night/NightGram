@@ -27,21 +27,21 @@ const features = [
   {
     icon: InfinityIcon,
     title: "Бесконечная лента",
-    desc: "Vertical scroll with lazy loading, skeleton states and smooth card reveals. Posts, channels, photos, video & text — all in one unique NightGram feed.",
+    desc: "Вертикальный скролл с ленивой загрузкой, скелетонами и плавными анимациями. Посты, каналы, фото, видео и текст — всё в одной уникальной ленте NightGram.",
     tag: "Feed",
     color: "var(--accent-main)",
   },
   {
     icon: MessageSquare,
     title: "Мессенджер real-time",
-    desc: "Socket.io-powered messaging with replies, reactions, files, stickers and folders. Synced live across web and mobile.",
+    desc: "Сообщения в реальном времени через Socket.io: ответы, реакции, файлы, стикеры и папки. Синхронизация между вебом и мобильным приложением.",
     tag: "Messenger",
     color: "#22d3ee",
   },
   {
     icon: ShoppingBag,
     title: "Night Store",
-    desc: "A premium marketplace for themes, color packs, frames, glow effects and badges. Buy with NightCoins or Stripe.",
+    desc: "Премиум-маркетплейс: темы, цветовые пакеты, рамки, glow-эффекты и бейджи. Покупай за NightCoins или напрямую.",
     tag: "Marketplace",
     color: "#ec4899",
   },
@@ -52,11 +52,11 @@ export function FeaturePreviews() {
     <section className="relative px-6 py-24 max-w-6xl mx-auto">
       <ScrollReveal className="text-center mb-16">
         <h2 className="font-display font-bold text-4xl md:text-5xl tracking-tight">
-          One platform. <span className="text-gradient">Three worlds.</span>
+          Одна платформа. <span className="text-gradient">Три мира.</span>
         </h2>
         <p className="mt-4 text-white/60 max-w-xl mx-auto">
-          Every part of NightGram is built from the same dark neon glass —
-          connected, real-time, and unmistakably ours.
+          Каждая часть NightGram построена из тёмного неонового стекла —
+          связано в реальном времени и неповторимо.
         </p>
       </ScrollReveal>
 
@@ -123,7 +123,7 @@ function FeatureLayout({
               key={i}
               className="rounded-lg px-3 py-1 text-xs glass text-white/70"
             >
-              {["Lazy loading", "Real-time sync", "Glow reactions"][(i + (reverse ? 1 : 0)) % 3]}
+              {["Ленивая загрузка", "Синхронизация в реальном времени", "Glow-реакции"][(i + (reverse ? 1 : 0)) % 3]}
             </span>
           ))}
         </div>
@@ -282,7 +282,7 @@ function StorePreviewCard() {
 // Expose icon used by nav badge
 export function FeatureStatRow() {
   const stats = [
-    { icon: Zap, label: "Real-time sync", value: "Socket.io" },
+    { icon: Zap, label: "Синхронизация в реальном времени", value: "Socket.io" },
     { icon: Crown, label: "Premium", value: "Stripe" },
   ];
   return (

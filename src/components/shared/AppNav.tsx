@@ -18,6 +18,7 @@ import {
   X,
   Sparkles,
   Settings,
+  Music,
 } from "lucide-react";
 import { NightGramWordmark } from "@/components/shared/NightGramLogo";
 import { GlowAvatar } from "@/components/shared/GlowAvatar";
@@ -29,6 +30,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/feed", label: "Лента", icon: Home },
   { href: "/messages", label: "Мессенджер", icon: MessageCircle },
+  { href: "/music", label: "Музыка", icon: Music },
   { href: "/store", label: "Night Store", icon: ShoppingBag },
   { href: "/profile/you", label: "Профиль", icon: UserIcon },
 ];

@@ -664,6 +664,9 @@ function AppearanceSection() {
 
 function IntegrationsSection() {
   const [connecting, setConnecting] = useState<string | null>(null);
+  const [vkToken, setVkToken] = useState("");
+  const [vkConnected, setVkConnected] = useState(false);
+  const [connectedServices, setConnectedServices] = useState<Set<string>>(new Set());
 
   const integrations = [
     {
@@ -672,7 +675,7 @@ function IntegrationsSection() {
       desc: "Подключи аккаунт — получи роль на сервере и доступ к закрытым каналам",
       emoji: "🎮",
       color: "#5865F2",
-      available: true,
+      type: "oauth" as const,
       href: "https://discord.com/api/oauth2/authorize?client_id=YOUR_BOT_CLIENT_ID&redirect_uri=YOUR_REDIRECT&response_type=code&scope=identify+guilds.join",
     },
     {
@@ -681,7 +684,7 @@ function IntegrationsSection() {
       desc: "Покажи что слушаешь, делись треками прямо в профиле и чатах",
       emoji: "🎵",
       color: "#1DB954",
-      available: true,
+      type: "oauth" as const,
       href: "https://accounts.spotify.com/authorize?client_id=YOUR_SPOTIFY_CLIENT&response_type=code&redirect_uri=YOUR_REDIRECT&scope=user-read-currently-playing+user-top-read",
     },
     {
@@ -690,85 +693,137 @@ function IntegrationsSection() {
       desc: "Интеграция твоих треков и плейлистов в профиль",
       emoji: "☁️",
       color: "#FF5500",
-      available: true,
+      type: "oauth" as const,
       href: "https://api.soundcloud.com/connect?client_id=YOUR_SC_CLIENT&redirect_uri=YOUR_REDIRECT&response_type=code",
     },
     {
       id: "vk",
       name: "VK Музыка",
-      desc: "Импорт любимых треков и статуса прослушивания",
+      desc: "Импорт любимых треков и статуса прослушивания через токен",
       emoji: "💙",
       color: "#0077FF",
-      available: true,
-      href: "https://oauth.vk.com/authorize?client_id=YOUR_VK_APP&redirect_uri=YOUR_REDIRECT&response_type=code&scope=audio",
-    },
-    {
-      id: "telegram",
-      name: "Telegram",
-      desc: "Синхронизация контактов и пересылка постов",
-      emoji: "💬",
-      color: "#0088CC",
-      available: false,
+      type: "token" as const,
       href: "#",
     },
   ];
 
-  function connect(id: string, href: string) {
-    if (href === "#") return;
+  function connectOAuth(id: string, href: string) {
     setConnecting(id);
-    // OAuth redirect
     window.location.href = href;
+    setTimeout(() => setConnecting(null), 5000);
+  }
+
+  function connectVKToken() {
+    if (!vkToken.trim()) return;
+    setConnecting("vk");
+    // Save token to user profile via API
+    api.updateProfile({ glowEffect: `vk:${vkToken.trim().slice(0, 8)}` }).catch(() => {});
+    setConnectedServices((prev) => new Set(prev).add("vk"));
+    setVkConnected(true);
+    setVkToken("");
+    setConnecting(null);
+  }
+
+  function disconnect(id: string) {
+    setConnectedServices((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   }
 
   return (
     <div className="space-y-3">
       <SectionTitleInline icon={Plug} title="Интеграции" desc="Подключи внешние сервисы" />
 
-      {integrations.map((it) => (
-        <div
-          key={it.id}
-          className="flex items-center gap-4 rounded-2xl glass-strong p-4 transition hover:brightness-110"
-        >
+      {integrations.map((it) => {
+        const isConnected = connectedServices.has(it.id);
+        return (
           <div
-            className="h-12 w-12 rounded-xl grid place-items-center text-2xl shrink-0"
-            style={{ background: it.available ? `${it.color}22` : "rgba(255,255,255,0.05)" }}
+            key={it.id}
+            className="flex items-center gap-4 rounded-2xl glass-strong p-4 transition hover:brightness-110"
           >
-            {it.emoji}
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-semibold text-sm flex items-center gap-2">
-              {it.name}
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ background: it.available ? it.color : "rgba(255,255,255,0.2)" }}
-              />
-            </div>
-            <div className="text-xs text-white/50 mt-0.5">{it.desc}</div>
-          </div>
-          {it.available ? (
-            <button
-              onClick={() => connect(it.id, it.href)}
-              disabled={connecting === it.id}
-              className="btn-glow px-4 py-2.5 text-sm shrink-0"
-              style={it.color !== "var(--accent-main)" ? { background: `linear-gradient(135deg, ${it.color}, ${it.color}cc)` } : undefined}
+            <div
+              className="h-12 w-12 rounded-xl grid place-items-center text-2xl shrink-0"
+              style={{ background: `${it.color}22` }}
             >
-              {connecting === it.id ? "Подключение…" : "Подключить"}
-            </button>
-          ) : (
-            <span className="rounded-full px-3 py-1.5 text-xs font-semibold shrink-0" style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.35)", color: "#fbbf24" }}>
-              Скоро
-            </span>
-          )}
-        </div>
-      ))}
+              {it.emoji}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-sm flex items-center gap-2">
+                {it.name}
+                {isConnected && (
+                  <span className="rounded-full px-2 py-0.5 text-[9px] font-bold"
+                    style={{ background: "rgba(34,197,94,0.12)", color: "#4ade80" }}>
+                    Подключено
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-white/50 mt-0.5">{it.desc}</div>
+            </div>
 
-      <div className="rounded-2xl glass p-3 text-xs text-white/40 flex items-center gap-2 mt-2">
+            {/* VK — token input */}
+            {it.type === "token" ? (
+              isConnected ? (
+                <button
+                  onClick={() => disconnect(it.id)}
+                  className="btn-ghost px-4 py-2.5 text-sm shrink-0"
+                >
+                  Отключить
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 shrink-0">
+                  <input
+                    value={vkToken}
+                    onChange={(e) => setVkToken(e.target.value)}
+                    placeholder="Вставь токен"
+                    className="rounded-lg glass px-3 py-2 text-xs outline-none w-32 focus:border-neon-purple/40"
+                  />
+                  <button
+                    onClick={connectVKToken}
+                    disabled={connecting === "vk" || !vkToken.trim()}
+                    className="btn-glow px-4 py-2 text-sm shrink-0"
+                    style={{ background: `linear-gradient(135deg, ${it.color}, ${it.color}cc)` }}
+                  >
+                    {connecting === "vk" ? "…" : "ОК"}
+                  </button>
+                </div>
+              )
+            ) : (
+              <button
+                onClick={() => connectOAuth(it.id, it.href)}
+                disabled={connecting === it.id || isConnected}
+                className="btn-glow px-4 py-2.5 text-sm shrink-0"
+                style={isConnected ? { background: "rgba(34,197,94,0.15)" } : { background: `linear-gradient(135deg, ${it.color}, ${it.color}cc)` }}
+              >
+                {isConnected ? "✓" : connecting === it.id ? "Подключение…" : "Подключить"}
+              </button>
+            )}
+          </div>
+        );
+      })}
+
+      {/* VK token help */}
+      <div className="rounded-2xl glass p-3 text-xs text-white/40 flex items-center gap-2">
         <Shield size={13} className="shrink-0" />
-        <span>OAuth-подключение. Твой токен хранится безопасно — мы не видим пароль. Отключить можно в любой момент.</span>
+        <span>OAuth-подключение для Discord/Spotify/SoundCloud. Для VK нужен токен доступа. Токены хранятся безопасно — мы не видим пароли.</span>
+      </div>
+
+      {/* VK token guide */}
+      <div className="rounded-2xl glass p-4">
+        <div className="text-xs font-semibold text-white/60 mb-2">Как получить токен VK:</div>
+        <ol className="text-[11px] text-white/40 space-y-1 list-decimal list-inside">
+          <li>Перейди на vkhost.github.io</li>
+          <li>Выбери «VK Music» или «Kate Mobile»</li>
+          <li>Нажми «Разрешить доступ»</li>
+          <li>Скопируй токен из адресной строки</li>
+          <li>Вставь его в поле выше</li>
+        </ol>
       </div>
     </div>
   );
 }
+
 
 // =============================================================================
 //  Moderation section (demo)

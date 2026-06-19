@@ -7,7 +7,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Crown, X, Lock, Sparkles } from "lucide-react";
+import { Crown, X, Lock } from "lucide-react";
 
 export function PremiumRequiredModal({
   open,
@@ -44,12 +44,12 @@ export function PremiumRequiredModal({
               <X size={16} />
             </button>
 
-            {/* Lock icon */}
+            {/* Crown icon — no black background */}
             <div
               className="mx-auto h-16 w-16 rounded-2xl grid place-items-center mb-4"
-              style={{ background: "rgba(251,191,36,0.12)" }}
+              style={{ background: "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.1))" }}
             >
-              <Lock size={28} style={{ color: "#fbbf24" }} />
+              <Crown size={28} style={{ color: "#fbbf24", fill: "rgba(251,191,36,0.2)" }} />
             </div>
 
             {/* Text */}
@@ -66,12 +66,12 @@ export function PremiumRequiredModal({
               className="mt-5 btn-glow w-full py-3 inline-flex items-center justify-center gap-2"
               style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}
             >
-              <Crown size={18} className="fill-[#1a1206]" /> Купить Premium
+              <Crown size={18} /> Купить Premium
             </Link>
 
-            {/* Hint */}
-            <p className="text-[11px] text-white/30 mt-3 flex items-center justify-center gap-1">
-              <Sparkles size={11} /> от 230₽ в месяц
+            {/* Hint — no star icon */}
+            <p className="text-[11px] text-white/30 mt-3">
+              от 230₽ в месяц
             </p>
           </motion.div>
         </motion.div>

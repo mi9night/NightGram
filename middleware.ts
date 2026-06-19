@@ -6,7 +6,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED = ["/feed", "/messages", "/store", "/profile", "/settings", "/notifications", "/premium"];
+const PROTECTED = ["/feed", "/messages", "/store", "/profile", "/settings", "/notifications", "/premium", "/music"];
 const AUTH_PAGES = ["/login", "/register"];
 
 export function middleware(req: NextRequest) {
@@ -39,6 +39,7 @@ export const config = {
     "/profile/:path*",
     "/settings/:path*",
     "/notifications/:path*",
+    "/music/:path*",
     "/login",
     "/register",
   ],

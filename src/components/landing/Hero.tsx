@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-//  Landing — Hero section
+//  Landing — Hero section (Russian)
 // =============================================================================
 
 import { motion } from "framer-motion";
@@ -29,7 +29,7 @@ export function Hero() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-neon-purple opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-neon-purple" />
             </span>
-            <span className="text-sm text-white/80">Now in open beta</span>
+            <span className="text-sm text-white/80">Открытая бета</span>
           </motion.div>
 
           <motion.h1
@@ -39,11 +39,11 @@ export function Hero() {
             className="font-display font-extrabold leading-[1.05] tracking-tight"
             style={{ fontSize: "clamp(2.5rem, 6vw, 4.5rem)" }}
           >
-            The Future of
+            Будущее
             <br />
-            <span className="text-gradient">Messaging &amp;</span>
+            <span className="text-gradient">социальных</span>
             <br />
-            <span className="text-gradient">Social Connection</span>
+            <span className="text-gradient">сетей</span>
           </motion.h1>
 
           <motion.p
@@ -52,9 +52,9 @@ export function Hero() {
             transition={{ delay: 0.25 }}
             className="mt-6 text-lg text-white/65 max-w-md mx-auto lg:mx-0"
           >
-            NightGram is a dark neon glass social platform — a real-time feed,
-            a glowing messenger, and a premium marketplace. One identity,
-            synced everywhere.
+            NightGram — это тёмная неоновая社交 платформа с лентой постов,
+            мессенджером в реальном времени и премиум-маркетплейсом.
+            Один аккаунт — синхронизация на всех устройствах.
           </motion.p>
 
           <motion.div
@@ -80,14 +80,14 @@ export function Hero() {
             <a href="#" className="glass rounded-2xl px-4 py-2.5 inline-flex items-center gap-2 hover:border-neon-purple/50 transition group">
               <Apple size={20} className="group-hover:text-neon-purple transition" />
               <div className="text-left leading-tight">
-                <div className="text-[9px] text-white/50">Download on the</div>
+                <div className="text-[9px] text-white/50">Загрузить в</div>
                 <div className="text-sm font-semibold">App Store</div>
               </div>
             </a>
             <a href="#" className="glass rounded-2xl px-4 py-2.5 inline-flex items-center gap-2 hover:border-neon-purple/50 transition group">
               <Smartphone size={20} className="group-hover:text-neon-purple transition" />
               <div className="text-left leading-tight">
-                <div className="text-[9px] text-white/50">GET IT ON</div>
+                <div className="text-[9px] text-white/50">Доступно в</div>
                 <div className="text-sm font-semibold">Google Play</div>
               </div>
             </a>
@@ -103,7 +103,7 @@ export function Hero() {
             className="gradient-border p-6 rounded-4xl glass-strong"
           >
             <NightGramWordmark size={48} />
-            <p className="mt-2 text-sm text-white/60">The night, reimagined.</p>
+            <p className="mt-2 text-sm text-white/60">Ночь, переосмысленная.</p>
           </motion.div>
 
           <PhoneMockup />
