@@ -11,15 +11,23 @@ const app = express();
 const server = http.createServer(app);
 
 // --- Middleware ---
-// CORS: dynamically echo any origin (required when credentials: true).
-// Cannot use "*" with credentials — browser rejects it.
-app.use(
-  cors({
-    origin: true,
-    credentials: true,
-  }),
-);
-app.use(express.json({ limit: "50mb" })); // allow large payloads
+// CORS: explicit configuration for maximum compatibility.
+// Handles both regular requests and preflight OPTIONS.
+app.use((req, res, next) => {
+  const origin = req.headers.origin || "*";
+  res.header("Access-Control-Allow-Origin", origin);
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control");
+  res.header("Access-Control-Max-Age", "86400");
+  // Handle preflight immediately
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+  next();
+});
+
+app.use(express.json({ limit: "50mb" }));
 
 // --- Root health check ---
 app.get("/", (_req, res) => {
@@ -51,13 +59,13 @@ if (stripeWebhookHandler) {
 const { authRouter } = require("./routes/auth");
 app.use("/api/auth", authRouter);
 
-// --- Upload route (base64 JSON, no multer needed) ---
-tryMount("/api/upload", authMiddleware, require("./routes/upload"), "Upload");
-
 // --- Auth middleware ---
 const { authMiddleware } = require("./middleware/auth");
 
-// --- Protected routes — each loaded independently so one failure doesn't break all ---
+// --- Upload route (base64 JSON) ---
+tryMount("/api/upload", authMiddleware, require("./routes/upload"), "Upload");
+
+// --- Protected routes ---
 function tryMount(path, middleware, routerFn, name) {
   try {
     app.use(path, middleware, routerFn);
