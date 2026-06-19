@@ -1,9 +1,9 @@
 "use client";
 
 // =============================================================================
-//  RoleBadge — shows user role as a badge
-//  - In profile: pill with icon + title + description
-//  - In posts/comments/messages: icon only, tooltip with title + description
+//  Badge — reusable component for role and premium badges
+//  - Profile: pill with icon + title, tooltip on hover
+//  - Posts/comments/messages: compact icon with tooltip
 // =============================================================================
 
 import { Crown, Shield, Star, Headphones, User } from "lucide-react";
@@ -13,47 +13,56 @@ import { cn } from "@/lib/utils";
 const ROLE_CONFIG: Record<string, { icon: LucideIcon; color: string; label: string; desc: string }> = {
   owner: {
     icon: Crown,
-    color: "#fbbf24",
+    color: "#7c3aed",
     label: "Владелец",
-    desc: "Создатель и владелец NightGram. Полный доступ ко всем функциям.",
+    desc: "Создатель NightGram.",
   },
   co_owner: {
     icon: Crown,
     color: "#a855f7",
-    label: "Зам. владельца",
-    desc: "Заместитель владельца. Может управлять ролями и модерацией.",
+    label: "Заместитель владельца",
+    desc: "Помогает с важными делами в NightGram.",
   },
   admin: {
     icon: Shield,
     color: "#ef4444",
     label: "Администратор",
-    desc: "Управляет пользователями, выдаёт наказания и одобряет покупки.",
+    desc: "Руководит стаффом.",
   },
   moderator: {
     icon: Shield,
     color: "#3b82f6",
     label: "Модератор",
-    desc: "Следит за порядком: тикеты, жалобы, баны и муты.",
+    desc: "Следит за порядком.",
   },
   support: {
     icon: Headphones,
     color: "#22d3ee",
     label: "Поддержка",
-    desc: "Помогает пользователям с вопросами и проблемами.",
+    desc: "Помогает пользователям с вопросами.",
   },
   creator: {
     icon: Star,
     color: "#ec4899",
     label: "Контент-мейкер",
-    desc: "Официальный создатель контента на платформе.",
+    desc: "Официальный создатель контента.",
   },
   user: {
     icon: User,
     color: "#9ca3af",
     label: "Пользователь",
-    desc: "Обычный участник NightGram.",
+    desc: "Участник NightGram.",
   },
 };
+
+const PREMIUM_CONFIG = {
+  icon: Crown,
+  color: "#fbbf24",
+  label: "Premium",
+  desc: "Подписка на нашем сайте, даёт уникальные возможности.",
+};
+
+// ===== Role Badge =====
 
 export function RoleBadge({
   role,
@@ -67,9 +76,63 @@ export function RoleBadge({
   className?: string;
 }) {
   const config = ROLE_CONFIG[role] ?? ROLE_CONFIG.user;
-  const Icon = config.icon;
+  return (
+    <BadgeContent
+      icon={config.icon}
+      color={config.color}
+      label={config.label}
+      desc={config.desc}
+      size={size}
+      showLabel={showLabel}
+      className={className}
+    />
+  );
+}
 
-  // --- Profile mode: full pill with title + description ---
+// ===== Premium Badge (compact, for posts/comments/messages) =====
+
+export function PremiumBadge({
+  size = 16,
+  showLabel = false,
+  className,
+}: {
+  size?: number;
+  showLabel?: boolean;
+  className?: string;
+}) {
+  return (
+    <BadgeContent
+      icon={PREMIUM_CONFIG.icon}
+      color={PREMIUM_CONFIG.color}
+      label={PREMIUM_CONFIG.label}
+      desc={PREMIUM_CONFIG.desc}
+      size={size}
+      showLabel={showLabel}
+      className={className}
+    />
+  );
+}
+
+// ===== Shared badge renderer =====
+
+function BadgeContent({
+  icon: Icon,
+  color,
+  label,
+  desc,
+  size = 16,
+  showLabel = false,
+  className,
+}: {
+  icon: LucideIcon;
+  color: string;
+  label: string;
+  desc: string;
+  size?: number;
+  showLabel?: boolean;
+  className?: string;
+}) {
+  // --- Profile mode: pill with icon + title ---
   if (showLabel) {
     return (
       <div
@@ -78,23 +141,23 @@ export function RoleBadge({
           className,
         )}
         style={{
-          background: `${config.color}15`,
-          border: `1px solid ${config.color}40`,
-          boxShadow: `0 0 12px ${config.color}22`,
+          background: `${color}15`,
+          border: `1px solid ${color}40`,
+          boxShadow: `0 0 12px ${color}22`,
         }}
       >
-        <Icon size={size} style={{ color: config.color, fill: config.color }} />
-        <span className="text-xs font-semibold" style={{ color: config.color }}>
-          {config.label}
+        <Icon size={size} style={{ color, fill: color }} />
+        <span className="text-xs font-semibold" style={{ color }}>
+          {label}
         </span>
 
-        {/* Tooltip with title + description */}
-        <div className="pointer-events-none absolute top-full left-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 w-56">
+        {/* Tooltip — anchored right to stay within card */}
+        <div className="pointer-events-none absolute top-full right-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 w-48">
           <div className="ng-solid rounded-xl p-3 shadow-glow-lg">
-            <div className="font-semibold text-xs mb-1 flex items-center gap-1.5" style={{ color: config.color }}>
-              <Icon size={12} /> {config.label}
+            <div className="font-semibold text-xs mb-1 flex items-center gap-1.5" style={{ color }}>
+              <Icon size={12} /> {label}
             </div>
-            <p className="text-[11px] text-white/65 leading-relaxed">{config.desc}</p>
+            <p className="text-[11px] text-white/65 leading-relaxed">{desc}</p>
           </div>
         </div>
       </div>
@@ -109,24 +172,24 @@ export function RoleBadge({
         style={{
           width: size + 6,
           height: size + 6,
-          background: `${config.color}22`,
-          boxShadow: `0 0 8px ${config.color}44`,
+          background: `${color}22`,
+          boxShadow: `0 0 8px ${color}44`,
         }}
       >
         <Icon
           size={size - 2}
-          style={{ color: config.color, fill: config.color }}
+          style={{ color, fill: color }}
           className="pointer-events-none"
         />
       </span>
 
-      {/* Tooltip with title + description */}
-      <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
-        <div className="ng-solid rounded-xl p-3 shadow-glow-lg w-52">
-          <div className="font-semibold text-xs mb-1 flex items-center gap-1.5" style={{ color: config.color }}>
-            <Icon size={12} /> {config.label}
+      {/* Tooltip — anchored left to stay within post cards */}
+      <div className="pointer-events-none absolute top-full left-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity z-50 w-48">
+        <div className="ng-solid rounded-xl p-3 shadow-glow-lg">
+          <div className="font-semibold text-xs mb-1 flex items-center gap-1.5" style={{ color }}>
+            <Icon size={12} /> {label}
           </div>
-          <p className="text-[11px] text-white/65 leading-relaxed">{config.desc}</p>
+          <p className="text-[11px] text-white/65 leading-relaxed">{desc}</p>
         </div>
       </div>
     </span>

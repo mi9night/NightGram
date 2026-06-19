@@ -14,7 +14,7 @@ import { cn, timeAgo } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { uid } from "@/lib/utils";
-import { RoleBadge } from "@/components/shared/RoleBadge";
+import { RoleBadge, PremiumBadge } from "@/components/shared/RoleBadge";
 
 export function CommentSheet({ postId, onClose }: { postId: string; onClose: () => void }) {
   const { user } = useAuth();
@@ -118,6 +118,9 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
                         </span>
                         {"role" in c.author && c.author.role && c.author.role !== "user" && (
                           <RoleBadge role={String(c.author.role)} size={14} />
+                        )}
+                        {"isPremium" in c.author && Boolean(c.author.isPremium) && (
+                          <PremiumBadge size={14} />
                         )}
                       </div>
                       <div className="text-[11px]" style={{ color: c.author.nameColor, opacity: 0.6 }}>

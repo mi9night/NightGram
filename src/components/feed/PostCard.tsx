@@ -17,7 +17,6 @@ import {
   Eye,
   MoreHorizontal,
   Play,
-  Crown,
 } from "lucide-react";
 import type { Post } from "@/types";
 import { GlowAvatar } from "@/components/shared/GlowAvatar";
@@ -26,7 +25,7 @@ import { cn, formatCount, timeAgo } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { CommentSheet } from "./CommentSheet";
-import { RoleBadge } from "@/components/shared/RoleBadge";
+import { RoleBadge, PremiumBadge } from "@/components/shared/RoleBadge";
 
 const QUICK_REACTIONS = ["🔥", "❤️", "😮", "✨", "💜"];
 
@@ -94,7 +93,7 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
               {displayName}
             </button>
             {authorUser?.isPremium && (
-              <Crown size={15} className="shrink-0" style={{ color: "#fbbf24" }} fill="rgba(251,191,36,0.3)" />
+              <PremiumBadge size={16} />
             )}
             {authorUser?.role && authorUser.role !== "user" && (
               <RoleBadge role={authorUser.role} size={16} />
