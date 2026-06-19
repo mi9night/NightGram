@@ -1,17 +1,19 @@
 "use client";
 
 // =============================================================================
-//  PaymentModal — выбор способа оплаты + копирование ID пользователя
+//  PaymentModal — выбор способа оплаты + копирование ID + отправка заявки
 // =============================================================================
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CreditCard, Wallet, Copy, Check, AlertCircle, ExternalLink } from "lucide-react";
+import { X, CreditCard, Wallet, Copy, Check, AlertCircle, ExternalLink, Loader2 } from "lucide-react";
+import { api } from "@/lib/api";
 
 export interface PaymentItem {
   title: string;
   subtitle: string;
   price: number;
+  itemType: "premium" | "coins";
 }
 
 export function PaymentModal({
@@ -26,11 +28,36 @@ export function PaymentModal({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [requestSent, setRequestSent] = useState(false);
+  const [sending, setSending] = useState(false);
 
   function copyId() {
     navigator.clipboard.writeText(ngId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  // Create a purchase request when user clicks a payment method
+  async function handlePaymentClick(href: string) {
+    if (!item || requestSent) {
+      window.open(href, "_blank");
+      return;
+    }
+
+    setSending(true);
+    try {
+      await api.createPurchaseRequest({
+        itemType: item.itemType,
+        itemName: item.title,
+        price: item.price,
+      });
+      setRequestSent(true);
+    } catch {
+      // Request failed — still let user pay
+    } finally {
+      setSending(false);
+      window.open(href, "_blank");
+    }
   }
 
   return (
@@ -69,6 +96,16 @@ export function PaymentModal({
                 <div className="text-lg font-bold text-neon-gold">{item.price}₽</div>
               </div>
             </div>
+
+            {/* Request sent confirmation */}
+            {requestSent && (
+              <div className="mb-4 flex items-center gap-2 rounded-xl p-3" style={{ background: "rgba(16,185,129,0.08)", border: "1px solid rgba(16,185,129,0.25)" }}>
+                <Check size={16} className="text-green-400 shrink-0" />
+                <span className="text-xs text-green-300">
+                  Заявка отправлена! После оплаты дождись подтверждения от администрации.
+                </span>
+              </div>
+            )}
 
             {/* ID copy section */}
             <div className="mb-5">
@@ -118,42 +155,40 @@ export function PaymentModal({
               <p className="text-xs text-white/50 ml-1">Выберите способ оплаты:</p>
 
               {/* DonationAlerts */}
-              <a
-                href="https://dalink.to/mi9night"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-2xl glass-strong p-4 transition hover:scale-[1.02] hover:border-neon-gold/40"
+              <button
+                onClick={() => handlePaymentClick("https://dalink.to/mi9night")}
+                disabled={sending}
+                className="w-full flex items-center gap-3 rounded-2xl glass-strong p-4 transition hover:scale-[1.02] hover:border-neon-gold/40 disabled:opacity-60"
               >
                 <div className="h-10 w-10 rounded-xl grid place-items-center shrink-0" style={{ background: "rgba(251,191,36,0.12)" }}>
-                  <CreditCard size={18} style={{ color: "#fbbf24" }} />
+                  {sending ? <Loader2 size={18} className="animate-spin" style={{ color: "#fbbf24" }} /> : <CreditCard size={18} style={{ color: "#fbbf24" }} />}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 text-left">
                   <div className="font-semibold text-sm">DonationAlerts</div>
                   <div className="text-xs text-white/45">Зарубежные + карты РФ</div>
                 </div>
                 <ExternalLink size={16} className="text-white/40" />
-              </a>
+              </button>
 
               {/* Donatex */}
-              <a
-                href="https://donatex.gg/donate/mi9night"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-2xl glass-strong p-4 transition hover:scale-[1.02] hover:border-neon-purple/40"
+              <button
+                onClick={() => handlePaymentClick("https://donatex.gg/donate/mi9night")}
+                disabled={sending}
+                className="w-full flex items-center gap-3 rounded-2xl glass-strong p-4 transition hover:scale-[1.02] hover:border-neon-purple/40 disabled:opacity-60"
               >
                 <div className="h-10 w-10 rounded-xl grid place-items-center shrink-0" style={{ background: "rgba(168,85,247,0.12)" }}>
-                  <Wallet size={18} className="text-neon-purple" />
+                  {sending ? <Loader2 size={18} className="animate-spin text-neon-purple" /> : <Wallet size={18} className="text-neon-purple" />}
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 text-left">
                   <div className="font-semibold text-sm">Donatex</div>
                   <div className="text-xs text-white/45">Карты РФ (запасной)</div>
                 </div>
                 <ExternalLink size={16} className="text-white/40" />
-              </a>
+              </button>
             </div>
 
             <p className="text-center text-[11px] text-white/30 mt-4">
-              После оплаты с чеком и указанным ID — Premium/звёзды активируются в течение 24 часов
+              После оплаты с чеком и указанным ID — Premium/звёзды активируются после подтверждения
             </p>
           </motion.div>
         </motion.div>

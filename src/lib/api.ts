@@ -251,6 +251,34 @@ export const api = {
     const raw = await request<unknown>("/users/me", { method: "PATCH", body: JSON.stringify(payload) });
     return normalizeUser(raw);
   },
+
+  // ---- Admin / Purchases --------------------------------------------------
+
+  async createPurchaseRequest(payload: {
+    itemType: "premium" | "coins";
+    itemName: string;
+    price: number;
+  }): Promise<{ id: string }> {
+    const raw = await request<unknown>("/admin/purchases", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+    return normalize<{ id: string }>(raw);
+  },
+
+  async getPurchaseRequests(status?: string): Promise<unknown[]> {
+    const qs = status ? `?status=${status}` : "";
+    const raw = await request<unknown[]>(`/admin/purchases${qs}`);
+    return normalize<unknown[]>(raw);
+  },
+
+  async approvePurchase(id: string): Promise<{ ok: boolean }> {
+    return request(`/admin/purchases/${id}/approve`, { method: "POST" });
+  },
+
+  async rejectPurchase(id: string): Promise<{ ok: boolean }> {
+    return request(`/admin/purchases/${id}/reject`, { method: "POST" });
+  },
 };
 
 function normalizeSession(data: {

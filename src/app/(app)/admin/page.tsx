@@ -5,7 +5,7 @@
 //  Tabs: Тикеты · Пользователи · Наказания · Жалобы · Финансы · Рассылка · Журнал
 // =============================================================================
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import {
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type Tab = "tickets" | "users" | "punishments" | "reports" | "finance" | "broadcast" | "log";
@@ -276,11 +277,35 @@ function ReportsSection() {
 // ==== Finance ====
 
 function FinanceSection() {
-  const requests = [
-    { id: "f1", username: "user2", ngId: "10000002", itemType: "premium", itemName: "Premium 1 год", price: 1390, status: "pending", createdAt: "30 мин" },
-    { id: "f2", username: "user5", ngId: "10000005", itemType: "coins", itemName: "500 NightCoins", price: 520, status: "pending", createdAt: "1 ч" },
-    { id: "f3", username: "user1", ngId: "10000001", itemType: "premium", itemName: "Premium 1 месяц", price: 230, status: "approved", createdAt: "3 ч" },
-  ];
+  const [filter, setFilter] = useState("all");
+  const [requests, setRequests] = useState<Record<string, unknown>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState<string | null>(null);
+
+  async function load() {
+    setLoading(true);
+    try {
+      const data = await api.getPurchaseRequests(filter);
+      setRequests(data as Record<string, unknown>[]);
+    } catch { setRequests([]); }
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, [filter]);
+
+  async function approve(id: string) {
+    setProcessing(id);
+    try { await api.approvePurchase(id); } catch {}
+    setProcessing(null);
+    load();
+  }
+
+  async function reject(id: string) {
+    setProcessing(id);
+    try { await api.rejectPurchase(id); } catch {}
+    setProcessing(null);
+    load();
+  }
 
   const statusConfig: Record<string, { color: string; label: string }> = {
     pending: { color: "#fbbf24", label: "Ожидание" },
@@ -291,28 +316,53 @@ function FinanceSection() {
   return (
     <div className="space-y-3">
       <p className="text-sm text-white/45 ml-1">Заявки на покупку — подтвердите оплату для активации</p>
-      {requests.map((r) => {
-        const cfg = statusConfig[r.status];
-        return (
-          <div key={r.id} className="glass rounded-2xl p-4 flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl grid place-items-center shrink-0" style={{ background: r.itemType === "premium" ? "rgba(251,191,36,0.12)" : "rgba(168,85,247,0.12)" }}>
-              {r.itemType === "premium" ? <Crown size={18} style={{ color: "#fbbf24" }} /> : <DollarSign size={18} className="text-neon-purple" />}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm">{r.itemName}</div>
-              <div className="text-xs text-white/45 mt-0.5">@{r.username} · #{r.ngId} · {r.price}₽ · {r.createdAt} назад</div>
-            </div>
-            {r.status === "pending" ? (
-              <div className="flex gap-1.5 shrink-0">
-                <button className="rounded-lg px-3 py-1.5 text-xs font-medium" style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.35)", color: "#34d399" }}>Одобрить</button>
-                <button className="rounded-lg px-3 py-1.5 text-xs font-medium" style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.35)", color: "#f87171" }}>Отклонить</button>
+
+      {/* Filter */}
+      <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+        {["all", "pending", "approved", "rejected"].map((f) => (
+          <button key={f} onClick={() => setFilter(f)} className={cn("rounded-lg px-3 py-1.5 text-xs whitespace-nowrap transition", filter === f ? "bg-neon-purple/20 text-white border border-neon-purple/40" : "glass text-white/55")}>
+            {f === "all" ? "Все" : f === "pending" ? "Ожидание" : f === "approved" ? "Одобрено" : "Отклонено"}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="text-center py-8 text-white/40"><Loader2 size={20} className="animate-spin mx-auto" /></div>
+      ) : requests.length === 0 ? (
+        <div className="text-center py-12 text-white/40">
+          <DollarSign size={32} className="mx-auto mb-3" />
+          <p>Заявок пока нет</p>
+        </div>
+      ) : (
+        requests.map((r) => {
+          const status = String(r.status ?? "pending");
+          const itemType = String(r.itemType ?? r.item_type ?? "");
+          const cfg = statusConfig[status] ?? statusConfig.pending;
+          return (
+            <div key={String(r.id)} className="glass rounded-2xl p-4 flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl grid place-items-center shrink-0" style={{ background: itemType === "premium" ? "rgba(251,191,36,0.12)" : "rgba(168,85,247,0.12)" }}>
+                {itemType === "premium" ? <Crown size={18} style={{ color: "#fbbf24" }} /> : <DollarSign size={18} className="text-neon-purple" />}
               </div>
-            ) : (
-              <span className="rounded-full px-2 py-0.5 text-[10px] font-bold shrink-0" style={{ background: `${cfg.color}22`, color: cfg.color }}>{cfg.label}</span>
-            )}
-          </div>
-        );
-      })}
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm">{String(r.itemName ?? r.item_name ?? "")}</div>
+                <div className="text-xs text-white/45 mt-0.5">@{String(r.username ?? "")} · #{String(r.ngId ?? r.ng_id ?? "")} · {String(r.price ?? "")}₽</div>
+              </div>
+              {status === "pending" ? (
+                <div className="flex gap-1.5 shrink-0">
+                  <button onClick={() => approve(String(r.id))} disabled={processing === String(r.id)} className="rounded-lg px-3 py-1.5 text-xs font-medium transition" style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.35)", color: "#34d399" }}>
+                    {processing === String(r.id) ? <Loader2 size={12} className="animate-spin" /> : "Одобрить"}
+                  </button>
+                  <button onClick={() => reject(String(r.id))} disabled={processing === String(r.id)} className="rounded-lg px-3 py-1.5 text-xs font-medium transition" style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.35)", color: "#f87171" }}>
+                    Отклонить
+                  </button>
+                </div>
+              ) : (
+                <span className="rounded-full px-2 py-0.5 text-[10px] font-bold shrink-0" style={{ background: `${cfg.color}22`, color: cfg.color }}>{cfg.label}</span>
+              )}
+            </div>
+          );
+        })
+      )}
     </div>
   );
 }

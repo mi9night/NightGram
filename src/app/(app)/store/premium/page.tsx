@@ -69,12 +69,12 @@ function PremiumPageContent() {
   const displayId = user?.customId ? `@${user.customId}` : `#${ngId}`;
 
   function buyPremium(plan: PremiumPlan) {
-    setPaymentItem({ title: `Premium — ${plan.duration}`, subtitle: "Подписка NightGram", price: plan.price });
+    setPaymentItem({ title: `Premium — ${plan.duration}`, subtitle: "Подписка NightGram", price: plan.price, itemType: "premium" });
     setPaymentOpen(true);
   }
 
   function buyCoins(pack: CoinPack) {
-    setPaymentItem({ title: `${pack.coins} NightCoins`, subtitle: "Покупка звёзд", price: pack.price });
+    setPaymentItem({ title: `${pack.coins} NightCoins`, subtitle: "Покупка звёзд", price: pack.price, itemType: "coins" });
     setPaymentOpen(true);
   }
 
