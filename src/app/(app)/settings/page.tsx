@@ -830,140 +830,17 @@ function IntegrationsSection() {
 // =============================================================================
 
 function ModerationSection() {
-  type ReportStatus = "pending" | "approved" | "removed" | "warned";
-  interface ModReport { id: string; content: string; author: string; type: string; severity: "high" | "medium" | "low"; status: ReportStatus; }
-
-  const [reports, setReports] = useState<ModReport[]>([
-    { id: "r1", content: "Этот пост содержит спам и мошеннические ссылки", author: "@spam_bot_42", type: "spam", severity: "high", status: "pending" },
-    { id: "r2", content: "Оскорбительные комментарии в чате #general", author: "@toxic_user", type: "harassment", severity: "medium", status: "pending" },
-    { id: "r3", content: "Повторяющаяся реклама Night Store в комментариях", author: "@ad_flood", type: "spam", severity: "low", status: "pending" },
-    { id: "r4", content: "NSFW контент в ленте", author: "@anon_poster", type: "nsfw", severity: "high", status: "pending" },
-  ]);
-
-  const [filter, setFilter] = useState<string>("all");
-  const filtered = filter === "all" ? reports : reports.filter((r) => r.severity === filter);
-
-  function resolve(id: string, action: "approved" | "removed" | "warned") {
-    setReports((prev) => prev.map((r) => (r.id === id ? { ...r, status: action } : r)));
-  }
-
-  const sevColor = { high: "#ef4444", medium: "#fbbf24", low: "#22d3ee" };
-  const sevLabel = { high: "Высокая", medium: "Средняя", low: "Низкая" };
-
-  const pending = reports.filter((r) => r.status === "pending").length;
-
   return (
     <div className="space-y-4">
-      <SectionTitleInline icon={Gavel} title="Модерация" desc="Панель управления NightGram" />
+      <SectionTitleInline icon={Gavel} title="Moderation" desc="Admin panel" />
 
-      {/* Admin panel link */}
-      <Link href="/admin" className="btn-glow w-full py-3 rounded-2xl text-sm flex items-center justify-center gap-2">
-        <Shield size={16} /> Открыть админ-панель →
+      <Link href="/admin" className="btn-glow w-full py-4 rounded-2xl text-sm flex items-center justify-center gap-2 overflow-visible">
+        <Shield size={18} /> Открыть админ-панель
       </Link>
 
-      <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-4">
-
-      {/* Demo badge */}
-      <div className="rounded-2xl p-3 flex items-center gap-3" style={{ background: "rgba(34,211,238,0.06)", border: "1px solid rgba(34,211,238,0.2)" }}>
-        <div className="h-8 w-8 rounded-lg grid place-items-center shrink-0" style={{ background: "rgba(34,211,238,0.15)" }}>
-          <Shield size={16} className="text-neon-cyan" />
-        </div>
-        <p className="text-xs text-white/60">
-          <b className="text-neon-cyan">Демо-режим модерации.</b> В реальной версии сюда попадают жалобы пользователей для ручной проверки.
-        </p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-2.5">
-        <StatCard label="В очереди" value={pending} color="#fbbf24" />
-        <StatCard label="Рассмотрено" value={reports.filter((r) => r.status !== "pending").length} color="#10b981" />
-        <StatCard label="Всего" value={reports.length} color="#a855f7" />
-      </div>
-
-      {/* Filter */}
-      <div className="flex gap-1.5 overflow-x-auto scrollbar-hide">
-        {["all", "high", "medium", "low"].map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={cn(
-              "rounded-lg px-3 py-1.5 text-xs whitespace-nowrap transition",
-              filter === f ? "bg-neon-purple/20 text-white border border-neon-purple/40" : "glass text-white/55",
-            )}
-          >
-            {f === "all" ? "Все" : sevLabel[f as keyof typeof sevLabel]}
-          </button>
-        ))}
-      </div>
-
-      {/* Reports */}
-      <div className="space-y-2.5">
-        {filtered.map((r) => (
-          <motion.div
-            key={r.id}
-            layout
-            className={cn(
-              "rounded-2xl glass p-3.5 transition",
-              r.status === "pending" ? "" : "opacity-50",
-            )}
-          >
-            <div className="flex items-start gap-3">
-              <span
-                className="mt-0.5 inline-block h-2 w-2 rounded-full shrink-0"
-                style={{ background: sevColor[r.severity], boxShadow: `0 0 8px ${sevColor[r.severity]}` }}
-              />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-semibold text-white/70">{r.author}</span>
-                  <span
-                    className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase"
-                    style={{ background: `${sevColor[r.severity]}22`, color: sevColor[r.severity] }}
-                  >
-                    {r.type}
-                  </span>
-                </div>
-                <p className="text-sm text-white/70">{r.content}</p>
-
-                {r.status === "pending" ? (
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      onClick={() => resolve(r.id, "removed")}
-                      className="rounded-lg px-3 py-1.5 text-xs font-medium transition"
-                      style={{ background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.35)", color: "#f87171" }}
-                    >
-                      Удалить
-                    </button>
-                    <button
-                      onClick={() => resolve(r.id, "warned")}
-                      className="rounded-lg px-3 py-1.5 text-xs font-medium transition"
-                      style={{ background: "rgba(251,191,36,0.15)", border: "1px solid rgba(251,191,36,0.35)", color: "#fbbf24" }}
-                    >
-                      Предупредить
-                    </button>
-                    <button
-                      onClick={() => resolve(r.id, "approved")}
-                      className="rounded-lg px-3 py-1.5 text-xs font-medium transition"
-                      style={{ background: "rgba(16,185,129,0.15)", border: "1px solid rgba(16,185,129,0.35)", color: "#34d399" }}
-                    >
-                      Оставить
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 mt-2 text-xs">
-                    <Check size={12} className="text-green-400" />
-                    <span className="text-white/50">
-                      {r.status === "removed" && "Контент удалён"}
-                      {r.status === "warned" && "Пользователь предупреждён"}
-                      {r.status === "approved" && "Одобрено"}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-      </div>
+      <p className="text-xs text-white/40 text-center">
+        Полная панель модерации доступна на странице /admin
+      </p>
     </div>
   );
 }

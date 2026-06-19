@@ -271,7 +271,7 @@ function WaveBanner({ playing, onToggle }: { playing: boolean; onToggle: () => v
       initial={{ opacity: 0, y: 20, scale: 0.97 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 100, damping: 15 }}
-      className="relative overflow-hidden rounded-4xl mb-4"
+      className="relative overflow-visible rounded-4xl mb-4"
       style={{ minHeight: 200 }}
     >
       {/* Animated gradient background */}

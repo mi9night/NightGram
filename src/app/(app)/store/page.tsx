@@ -64,7 +64,7 @@ export default function StorePage() {
 
       {/* Quick links to Premium / Coins */}
       <div className="grid sm:grid-cols-2 gap-3 mb-6">
-        <Link href="/store/premium?tab=premium" className="group relative overflow-hidden rounded-2xl glass-strong p-4 flex items-center gap-3 transition hover:scale-[1.02]">
+        <Link href="/store/premium?tab=premium" className="group relative overflow-visible rounded-2xl glass-strong p-4 flex items-center gap-3 transition hover:scale-[1.02]">
           <div className="h-11 w-11 rounded-xl grid place-items-center shrink-0" style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}>
             <Crown size={20} className="text-white" />
           </div>
@@ -73,7 +73,7 @@ export default function StorePage() {
             <div className="text-xs text-white/45">Темы, рамки, glow и многое другое</div>
           </div>
         </Link>
-        <Link href="/store/premium?tab=coins" className="group relative overflow-hidden rounded-2xl glass-strong p-4 flex items-center gap-3 transition hover:scale-[1.02]">
+        <Link href="/store/premium?tab=coins" className="group relative overflow-visible rounded-2xl glass-strong p-4 flex items-center gap-3 transition hover:scale-[1.02]">
           <div className="h-11 w-11 rounded-xl grid place-items-center shrink-0" style={{ background: "rgba(251,191,36,0.12)" }}>
             <Sparkles size={20} className="fill-neon-gold text-neon-gold" />
           </div>
