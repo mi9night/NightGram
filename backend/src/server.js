@@ -11,9 +11,11 @@ const app = express();
 const server = http.createServer(app);
 
 // --- Middleware ---
+// CORS: dynamically echo any origin (required when credentials: true).
+// Cannot use "*" with credentials — browser rejects it.
 app.use(
   cors({
-    origin: process.env.CLIENT_URL ? process.env.CLIENT_URL.split(",") : "*",
+    origin: true,
     credentials: true,
   }),
 );

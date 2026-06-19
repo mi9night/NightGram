@@ -33,7 +33,14 @@ export default function RegisterPage() {
       await register(form.username, form.email, form.password);
       router.replace("/feed");
     } catch (err) {
-      setError("Не удалось зарегистрироваться. Попробуй другой username или email.");
+      const msg = err instanceof Error ? err.message : "Ошибка регистрации";
+      if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+        setError("Не удалось подключиться к серверу. Проверьте интернет или попробуйте позже.");
+      } else if (msg.includes("409") || msg.includes("already") || msg.includes("duplicate")) {
+        setError("Этот email или username уже занят. Попробуйте другой.");
+      } else {
+        setError("Ошибка: " + msg);
+      }
     } finally {
       setLoading(false);
     }

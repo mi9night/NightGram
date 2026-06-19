@@ -46,8 +46,15 @@ function LoginContent() {
     try {
       await login(email, password);
       router.replace(next);
-    } catch {
-      setError("Неверный email или пароль. Проверь данные и попробуй снова.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Ошибка входа";
+      if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+        setError("Не удалось подключиться к серверу. Проверьте интернет или попробуйте позже.");
+      } else if (msg.includes("401") || msg.includes("Invalid")) {
+        setError("Неверный email или пароль.");
+      } else {
+        setError("Ошибка: " + msg);
+      }
     } finally {
       setLoading(false);
     }
