@@ -15,6 +15,7 @@ import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { uid } from "@/lib/utils";
 import { RoleBadge, PremiumBadge } from "@/components/shared/RoleBadge";
+import { PostMenu } from "./PostMenu";
 
 export function CommentSheet({ postId, onClose }: { postId: string; onClose: () => void }) {
   const { user } = useAuth();
@@ -135,6 +136,16 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
                       <Heart size={11} /> {c.likesCount || ""}
                     </button>
                     <button className="hover:text-white transition">Ответить</button>
+                    <div className="ml-auto">
+                      <PostMenu
+                        isOwner={c.author.id === user?.id}
+                        isAdmin={["admin", "owner", "co_owner", "moderator"].includes(user?.role ?? "")}
+                        onReport={(category, reason) => {
+                          api.createReport({ targetType: "comment", targetId: c.id, category, reason }).catch(() => {});
+                          alert("Жалоба отправлена!");
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
               </motion.div>

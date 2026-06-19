@@ -26,11 +26,13 @@ import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { CommentSheet } from "./CommentSheet";
 import { RoleBadge, PremiumBadge } from "@/components/shared/RoleBadge";
+import { PostMenu } from "./PostMenu";
 
 const QUICK_REACTIONS = ["🔥", "❤️", "😮", "✨", "💜"];
 
 export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
   const router = useRouter();
+  const { user } = useAuth();
   const [liked, setLiked] = useState(post.liked);
   const [saved, setSaved] = useState(post.saved);
   const [likes, setLikes] = useState(post.likesCount);
@@ -112,9 +114,24 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
             )}
           </div>
         </div>
-        <button className="ml-auto grid place-items-center h-8 w-8 rounded-lg glass text-white/50 hover:text-white transition">
-          <MoreHorizontal size={16} />
-        </button>
+        <div className="ml-auto">
+          <PostMenu
+            isOwner={post.author.kind === "user" && authorUser?.id === user?.id}
+            isAdmin={["admin", "owner", "co_owner", "moderator"].includes(user?.role ?? "")}
+            onDelete={() => {
+              if (confirm("Удалить этот пост?")) {
+                fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/posts/${post.id}`, {
+                  method: "DELETE",
+                  headers: { Authorization: `Bearer ${localStorage.getItem("ng_access_token")}` },
+                }).then(() => window.location.reload()).catch(() => {});
+              }
+            }}
+            onReport={(category, reason) => {
+              api.createReport({ targetType: "post", targetId: post.id, category, reason }).catch(() => {});
+              alert("Жалоба отправлена. Спасибо!");
+            }}
+          />
+        </div>
       </div>
 
       {/* Text — with "show more" for long posts */}

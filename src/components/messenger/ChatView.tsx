@@ -334,7 +334,7 @@ export function ChatView({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-white/5"
+            className="border-t border-white/5"
           >
             <div className="p-3 grid grid-cols-6 gap-2">
               {STICKERS.map((s) => (
@@ -354,7 +354,7 @@ export function ChatView({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-white/5"
+            className="border-t border-white/5"
           >
             <div className="p-3 flex flex-wrap gap-2">
               {EMOJIS.map((e) => (
@@ -378,7 +378,7 @@ export function ChatView({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden border-t border-white/5"
+            className="border-t border-white/5"
           >
             <div className="flex items-center gap-2 px-4 py-2 bg-neon-purple/5">
               <Reply size={14} className="text-neon-purple" />

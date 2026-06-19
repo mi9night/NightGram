@@ -70,7 +70,7 @@ export function PostMenu({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.95 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-9 right-0 z-[70] w-56 ng-solid rounded-2xl overflow-hidden shadow-glow-lg"
+            className="absolute top-9 right-0 z-[70] w-56 ng-solid rounded-2xl shadow-glow-lg"
           >
             {!reportMode ? (
               <div className="p-1.5">

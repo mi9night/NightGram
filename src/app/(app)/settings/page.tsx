@@ -709,8 +709,8 @@ function IntegrationsSection() {
 
   function connectOAuth(id: string, href: string) {
     setConnecting(id);
-    window.location.href = href;
-    setTimeout(() => setConnecting(null), 5000);
+    window.open(href, "_blank", "noopener,noreferrer");
+    setTimeout(() => { setConnecting(null); setConnectedServices((prev) => new Set(prev).add(id)); }, 2000);
   }
 
   function connectVKToken() {
