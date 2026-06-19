@@ -38,7 +38,7 @@ export default function AppLayout({
   return (
     <div className="min-h-screen pb-24 md:pb-0">
       <AppNav />
-      <main className="pt-24">{children}</main>
+      <main className="pt-32">{children}</main>
     </div>
   );
 }
