@@ -14,6 +14,7 @@ import { cn, timeAgo } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { uid } from "@/lib/utils";
+import { RoleBadge } from "@/components/shared/RoleBadge";
 
 export function CommentSheet({ postId, onClose }: { postId: string; onClose: () => void }) {
   const { user } = useAuth();
@@ -111,8 +112,13 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
                       onClick={() => router.push(`/profile/${c.author.username}`)}
                       className="hover:opacity-80 transition text-left w-full"
                     >
-                      <div className="text-xs font-semibold" style={{ color: c.author.nameColor }}>
-                        {c.author.displayName}
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-semibold" style={{ color: c.author.nameColor }}>
+                          {c.author.displayName}
+                        </span>
+                        {"role" in c.author && c.author.role && c.author.role !== "user" && (
+                          <RoleBadge role={String(c.author.role)} size={14} />
+                        )}
                       </div>
                       <div className="text-[11px]" style={{ color: c.author.nameColor, opacity: 0.6 }}>
                         @{c.author.username}

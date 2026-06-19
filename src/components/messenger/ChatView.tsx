@@ -24,6 +24,7 @@ import type { Conversation, Message } from "@/types";
 import { GlowAvatar } from "@/components/shared/GlowAvatar";
 import { cn, clockTime, uid } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
+import { RoleBadge } from "@/components/shared/RoleBadge";
 import { useSocket } from "@/context/SocketProvider";
 import { api } from "@/lib/api";
 
@@ -196,6 +197,9 @@ export function ChatView({
           >
             {conversation.title}
           </button>
+          {other?.role && other.role !== "user" && other.role !== "member" && (
+            <RoleBadge role={other.role} size={15} />
+          )}
           <div className="text-xs text-white/45">
             {typing ? (
               <span className="text-neon-purple">печатает…</span>

@@ -9,6 +9,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Crown, ChevronDown, Plus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { cn } from "@/lib/utils";
 
 export function BalanceDropdown() {
   const { user } = useAuth();
@@ -25,6 +26,10 @@ export function BalanceDropdown() {
 
   if (!user) return null;
 
+  // Format premium end date
+  const premiumEnd = user.premiumUntil ? new Date(user.premiumUntil) : null;
+  const premiumEndStr = premiumEnd ? premiumEnd.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" }) : null;
+
   return (
     <div className="relative" ref={ref}>
       {/* Trigger — combined coins + premium pill */}
@@ -35,7 +40,7 @@ export function BalanceDropdown() {
         {/* Coins */}
         <span className="flex items-center gap-1.5 text-neon-gold font-semibold">
           <Sparkles size={14} className="fill-neon-gold text-neon-gold" />
-          {user.nightCoins.toLocaleString("ru-RU")}
+          {(user.nightCoins ?? 0).toLocaleString("ru-RU")}
         </span>
 
         {/* Divider */}
@@ -54,7 +59,7 @@ export function BalanceDropdown() {
 
         <ChevronDown
           size={14}
-          className={`text-white/40 transition ${open ? "rotate-180" : ""}`}
+          className={cn("text-white/40 transition", open ? "rotate-180" : "")}
         />
       </button>
 
@@ -73,7 +78,7 @@ export function BalanceDropdown() {
               <div className="text-xs text-white/45 mb-1">Твой баланс</div>
               <div className="flex items-center gap-2">
                 <span className="font-display font-bold text-2xl text-neon-gold">
-                  {user.nightCoins.toLocaleString("ru-RU")} ✦
+                  {(user.nightCoins ?? 0).toLocaleString("ru-RU")} ✦
                 </span>
               </div>
               <Link
@@ -86,7 +91,7 @@ export function BalanceDropdown() {
             </div>
 
             {/* Premium status */}
-            <div className="p-4 border-b ng-divider">
+            <div className="p-4">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs text-white/45">Premium</span>
                 {user.isPremium ? (
@@ -102,7 +107,14 @@ export function BalanceDropdown() {
                 )}
               </div>
               {user.isPremium ? (
-                <p className="text-xs text-white/50">Спасибо за поддержку! Все функции разблокированы.</p>
+                <div>
+                  <p className="text-xs text-white/50">Спасибо за поддержку! ✦</p>
+                  {premiumEndStr && (
+                    <p className="text-[11px] text-white/35 mt-1">
+                      Окончание: {premiumEndStr}
+                    </p>
+                  )}
+                </div>
               ) : (
                 <Link
                   href="/store/premium?tab=premium"
@@ -110,7 +122,7 @@ export function BalanceDropdown() {
                   className="block mt-2 rounded-xl p-3 text-center text-sm font-semibold transition hover:brightness-110"
                   style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)", color: "#1a1206" }}
                 >
-                  <Crown size={14} className="inline mr-1" /> Купить Premium от 230₽
+                  <Crown size={14} className="inline mr-1" /> Купить Premium
                 </Link>
               )}
             </div>

@@ -27,6 +27,7 @@ import type { Post, StoreItem, User } from "@/types";
 import type { LucideIcon } from "lucide-react";
 import { GlowAvatar } from "@/components/shared/GlowAvatar";
 import { ColoredUsername, PremiumCrownIcon } from "@/components/shared/Badges";
+import { RoleBadge } from "@/components/shared/RoleBadge";
 import { PostCard } from "@/components/feed/PostCard";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
@@ -170,6 +171,9 @@ export default function ProfilePage({
                 {/* Badges wrap to next line under the first badge if too many */}
                 <div className="inline-flex items-center gap-1.5 flex-wrap max-w-full">
                   {safeProfile.isPremium && <PremiumCrownIcon />}
+                  {safeProfile.role && safeProfile.role !== "user" && (
+                    <RoleBadge role={safeProfile.role} size={18} showLabel />
+                  )}
                 </div>
               </div>
 

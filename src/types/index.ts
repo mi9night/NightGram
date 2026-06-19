@@ -71,7 +71,7 @@ export interface Post {
 export interface Comment {
   id: ID;
   postId: ID;
-  author: Pick<User, "id" | "username" | "displayName" | "avatarUrl" | "nameColor">;
+  author: Pick<User, "id" | "username" | "displayName" | "avatarUrl" | "nameColor"> & { role?: string };
   text: string;
   likesCount: number;
   liked: boolean;
@@ -118,7 +118,7 @@ export interface ConversationParticipant {
   username: string;
   avatarUrl: string | null;
   nameColor: string;
-  role: "member" | "admin" | "owner";
+  role: "member" | "admin" | "owner" | "user";
   isOnline: boolean;
 }
 

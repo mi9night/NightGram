@@ -26,6 +26,7 @@ import { cn, formatCount, timeAgo } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { CommentSheet } from "./CommentSheet";
+import { RoleBadge } from "@/components/shared/RoleBadge";
 
 const QUICK_REACTIONS = ["🔥", "❤️", "😮", "✨", "💜"];
 
@@ -93,6 +94,9 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
               {displayName}
             </button>
             {verified && <BadgeCheck size={15} className="text-neon-purple shrink-0" />}
+            {authorUser?.role && authorUser.role !== "user" && (
+              <RoleBadge role={authorUser.role} size={16} />
+            )}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-white/45">
             <button onClick={() => router.push(`/profile/${username}`)} className="hover:opacity-80 transition">
