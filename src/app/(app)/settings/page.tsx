@@ -56,7 +56,7 @@ export default function SettingsPage() {
   const { user } = useAuth();
   const [tab, setTab] = useState<Tab>("profile");
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = ["admin", "owner", "co_owner", "moderator", "support"].includes(user?.role ?? "");
   const tabs = isAdmin ? TABS : TABS.filter((t) => t.id !== "moderation");
 
   return (
@@ -853,8 +853,15 @@ function ModerationSection() {
   const pending = reports.filter((r) => r.status === "pending").length;
 
   return (
-    <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-4">
-      <SectionTitle icon={Gavel} title="Модерация" desc="Демо-панель проверки контента" />
+    <div className="space-y-4">
+      <SectionTitleInline icon={Gavel} title="Модерация" desc="Панель управления NightGram" />
+
+      {/* Admin panel link */}
+      <Link href="/admin" className="btn-glow w-full py-3 rounded-2xl text-sm flex items-center justify-center gap-2">
+        <Shield size={16} /> Открыть админ-панель →
+      </Link>
+
+      <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-4">
 
       {/* Demo badge */}
       <div className="rounded-2xl p-3 flex items-center gap-3" style={{ background: "rgba(34,211,238,0.06)", border: "1px solid rgba(34,211,238,0.2)" }}>
@@ -955,6 +962,7 @@ function ModerationSection() {
             </div>
           </motion.div>
         ))}
+      </div>
       </div>
     </div>
   );

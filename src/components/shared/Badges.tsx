@@ -40,8 +40,8 @@ export function PremiumCrownIcon() {
       }}
     >
       <Crown size={14} className="fill-[#1a1206]" /> Premium
-      {/* Tooltip */}
-      <div className="pointer-events-none absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-30 w-60">
+      {/* Tooltip — anchored right to stay within card */}
+      <div className="pointer-events-none absolute top-full right-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 w-48">
         <div className="ng-solid rounded-xl p-3 text-xs text-white/85 shadow-glow-lg">
           <div className="font-semibold mb-1 flex items-center gap-1.5" style={{ color: "#fbbf24" }}>
             <Crown size={12} className="fill-[#fbbf24]" /> Premium
