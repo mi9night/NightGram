@@ -17,33 +17,33 @@ import {
   Paperclip,
   Smile,
   Crown,
-  Zap,
 } from "lucide-react";
 import { ScrollReveal } from "@/components/shared/ScrollReveal";
 import { CoinsBadge } from "@/components/shared/Badges";
 import { GlowAvatar } from "@/components/shared/GlowAvatar";
+import { cn } from "@/lib/utils";
 
 const features = [
   {
     icon: InfinityIcon,
     title: "Бесконечная лента",
     desc: "Вертикальный скролл с ленивой загрузкой, скелетонами и плавными анимациями. Посты, каналы, фото, видео и текст — всё в одной уникальной ленте NightGram.",
-    tag: "Feed",
+    tag: "Лента",
     color: "var(--accent-main)",
   },
   {
     icon: MessageSquare,
-    title: "Мессенджер real-time",
-    desc: "Сообщения в реальном времени через Socket.io: ответы, реакции, файлы, стикеры и папки. Синхронизация между вебом и мобильным приложением.",
-    tag: "Messenger",
+    title: "Мессенджер реал-тайм",
+    desc: "Сообщения в реальном времени: ответы, реакции, файлы, стикеры и папки. Синхронизация между вебом и мобильным приложением.",
+    tag: "Мессенджер",
     color: "#22d3ee",
   },
   {
     icon: ShoppingBag,
     title: "Night Store",
     desc: "Премиум-маркетплейс: темы, цветовые пакеты, рамки, glow-эффекты и бейджи. Покупай за NightCoins или напрямую.",
-    tag: "Marketplace",
-    color: "#ec4899",
+    tag: "Маркетплейс",
+    color: "var(--accent-tertiary)",
   },
 ];
 
@@ -63,10 +63,7 @@ export function FeaturePreviews() {
       <div className="space-y-24">
         {/* FEED PREVIEW */}
         <ScrollReveal>
-          <FeatureLayout
-            reverse={false}
-            icon={features[0]}
-          >
+          <FeatureLayout reverse={false} icon={features[0]}>
             <FeedPreviewCard />
           </FeatureLayout>
         </ScrollReveal>
@@ -118,12 +115,12 @@ function FeatureLayout({
         </h3>
         <p className="text-white/65 text-lg leading-relaxed">{icon.desc}</p>
         <div className="mt-6 flex flex-wrap gap-2">
-          {[1, 2, 3].map((i) => (
+          {["Лента постов", "Реал-тайм", "Glow-реакции"].map((txt, i) => (
             <span
-              key={i}
+              key={txt}
               className="rounded-lg px-3 py-1 text-xs glass text-white/70"
             >
-              {["Ленивая загрузка", "Синхронизация в реальном времени", "Glow-реакции"][(i + (reverse ? 1 : 0)) % 3]}
+              {["Лента постов", "Реал-тайм", "Glow-реакции"][(i + (reverse ? 1 : 0)) % 3]}
             </span>
           ))}
         </div>
@@ -141,15 +138,10 @@ function FeedPreviewCard() {
       className="gradient-border rounded-4xl glass-strong p-5 max-w-sm mx-auto shadow-glow-lg"
     >
       <div className="flex items-center gap-3 mb-4">
-        <GlowAvatar
-          src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop"
-          alt="Nova"
-          size={44}
-          glow="purple"
-          frame="aurora"
-        />
+        {/* Empty avatar (no specific user) */}
+        <GlowAvatar src={null} alt="Профиль" size={44} glow="purple" frame="aurora" />
         <div>
-          <div className="font-semibold">@nova</div>
+          <div className="font-semibold" style={{ color: "var(--accent-main)" }}>@nightgram</div>
           <div className="text-xs text-white/40">2 мин назад</div>
         </div>
         <div className="ml-auto inline-flex items-center gap-1 text-xs text-white/50">
@@ -161,14 +153,7 @@ function FeedPreviewCard() {
         style={{ background: "linear-gradient(135deg,var(--accent-main),var(--accent-tertiary),var(--accent-secondary))" }}
         animate={{ backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"] }}
         transition={{ duration: 8, repeat: Infinity }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&h=800&fit=crop"
-          alt="post"
-          className="h-full w-full object-cover mix-blend-luminosity opacity-90"
-        />
-      </motion.div>
+      />
       <div className="flex items-center gap-5 text-white/80">
         <Heart className="fill-neon-pink text-neon-pink" size={20} />
         <MessageSquare size={20} />
@@ -187,28 +172,22 @@ function MessengerPreviewCard() {
       className="gradient-border rounded-4xl glass-strong p-4 max-w-sm mx-auto shadow-glow-lg"
     >
       <div className="flex items-center gap-3 pb-3 border-b border-white/5">
-        <GlowAvatar
-          src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&h=200&fit=crop"
-          alt="Lumen"
-          size={40}
-          glow="pink"
-          online
-        />
+        <GlowAvatar src={null} alt="Профиль" size={40} glow="cyan" online />
         <div className="flex-1">
-          <div className="font-semibold text-pink-300">@lumen</div>
+          <div className="font-semibold" style={{ color: "#22d3ee" }}>@user</div>
           <div className="text-xs text-green-400">в сети</div>
         </div>
       </div>
       <div className="space-y-2.5 py-4">
-        <Bubble side="left">hey, did you see the new update? 🔥</Bubble>
-        <Bubble side="right">yes!! the Aurora theme is incredible</Bubble>
-        <Bubble side="left" react="🔥">grabbing it with my NightCoins rn</Bubble>
+        <Bubble side="left">Привет! Видел новые обновления? 🔥</Bubble>
+        <Bubble side="right">Да! Aurora тема просто космос</Bubble>
+        <Bubble side="left" react="🔥">Беру за NightCoins прямо сейчас</Bubble>
       </div>
       <div className="flex items-center gap-2 rounded-full glass px-3 py-2">
         <Paperclip size={16} className="text-white/50" />
-        <span className="flex-1 text-sm text-white/40">Message…</span>
+        <span className="flex-1 text-sm text-white/40">Сообщение…</span>
         <Smile size={16} className="text-white/50" />
-        <div className="h-7 w-7 grid place-items-center rounded-full bg-neon-purple">
+        <div className="h-7 w-7 grid place-items-center rounded-full btn-glow">
           <Send size={13} />
         </div>
       </div>
@@ -250,9 +229,9 @@ function Bubble({
 
 function StorePreviewCard() {
   const items = [
-    { name: "Aurora Theme", coins: 800, grad: "linear-gradient(135deg,var(--accent-main),var(--accent-tertiary))", glow: "var(--accent-main)" },
-    { name: "Pink Glow", coins: 350, grad: "linear-gradient(135deg,var(--accent-tertiary),#f59e0b)", glow: "var(--accent-tertiary)" },
-    { name: "Cyber Stickers", coins: 450, grad: "linear-gradient(135deg,#22d3ee,var(--accent-secondary))", glow: "#22d3ee" },
+    { name: "Тема Aurora", coins: 800, grad: "linear-gradient(135deg,var(--accent-main),var(--accent-tertiary))", glow: "var(--accent-main)" },
+    { name: "Розовый Glow", coins: 350, grad: "linear-gradient(135deg,var(--accent-tertiary),#f59e0b)", glow: "var(--accent-tertiary)" },
+    { name: "Стикеры Кибер", coins: 450, grad: "linear-gradient(135deg,#22d3ee,var(--accent-secondary))", glow: "#22d3ee" },
   ];
   return (
     <div className="grid gap-3 max-w-sm mx-auto">
@@ -281,21 +260,13 @@ function StorePreviewCard() {
 
 // Expose icon used by nav badge
 export function FeatureStatRow() {
-  const stats = [
-    { icon: Zap, label: "Синхронизация в реальном времени", value: "Socket.io" },
-    { icon: Crown, label: "Premium", value: "Stripe" },
-  ];
   return (
     <div className="flex gap-4">
-      {stats.map((s) => {
-        const Icon = s.icon;
-        return (
-          <div key={s.label} className="flex items-center gap-2 glass rounded-xl px-3 py-2">
-            <Icon size={14} className="text-neon-purple" />
-            <span className="text-xs text-white/60">{s.label}</span>
-          </div>
-        );
-      })}
+      {["Реал-тайм", "Premium", "NightCoins"].map((s) => (
+        <div key={s} className="flex items-center gap-2 glass rounded-xl px-3 py-2">
+          <span className="text-xs text-white/60">{s}</span>
+        </div>
+      ))}
     </div>
   );
 }

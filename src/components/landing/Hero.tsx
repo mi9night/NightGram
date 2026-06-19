@@ -52,7 +52,7 @@ export function Hero() {
             transition={{ delay: 0.25 }}
             className="mt-6 text-lg text-white/65 max-w-md mx-auto lg:mx-0"
           >
-            NightGram — это тёмная неоновая社交 платформа с лентой постов,
+            NightGram — это тёмная неоновая платформа с лентой постов,
             мессенджером в реальном времени и премиум-маркетплейсом.
             Один аккаунт — синхронизация на всех устройствах.
           </motion.p>
@@ -71,26 +71,33 @@ export function Hero() {
             </Link>
           </motion.div>
 
+          {/* App Store / Google Play */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55 }}
             className="mt-4 flex gap-3 justify-center lg:justify-start"
           >
-            <a href="#" className="glass rounded-2xl px-4 py-2.5 inline-flex items-center gap-2 hover:border-neon-purple/50 transition group">
-              <Apple size={20} className="group-hover:text-neon-purple transition" />
-              <div className="text-left leading-tight">
-                <div className="text-[9px] text-white/50">Загрузить в</div>
-                <div className="text-sm font-semibold">App Store</div>
+            <div className="relative">
+              <span className="absolute -top-2 -right-2 z-10 rounded-full bg-neon-purple text-[9px] font-bold px-2 py-0.5 shadow-glow">Скоро</span>
+              <div className="glass rounded-2xl px-4 py-2.5 inline-flex items-center gap-2 cursor-default opacity-80">
+                <Apple size={20} className="text-white/60" />
+                <div className="text-left leading-tight">
+                  <div className="text-[9px] text-white/50">Скачать в</div>
+                  <div className="text-sm font-semibold">App Store</div>
+                </div>
               </div>
-            </a>
-            <a href="#" className="glass rounded-2xl px-4 py-2.5 inline-flex items-center gap-2 hover:border-neon-purple/50 transition group">
-              <Smartphone size={20} className="group-hover:text-neon-purple transition" />
-              <div className="text-left leading-tight">
-                <div className="text-[9px] text-white/50">Доступно в</div>
-                <div className="text-sm font-semibold">Google Play</div>
+            </div>
+            <div className="relative">
+              <span className="absolute -top-2 -right-2 z-10 rounded-full bg-neon-purple text-[9px] font-bold px-2 py-0.5 shadow-glow">Скоро</span>
+              <div className="glass rounded-2xl px-4 py-2.5 inline-flex items-center gap-2 cursor-default opacity-80">
+                <Smartphone size={20} className="text-white/60" />
+                <div className="text-left leading-tight">
+                  <div className="text-[9px] text-white/50">Скачать в</div>
+                  <div className="text-sm font-semibold">Google Play</div>
+                </div>
               </div>
-            </a>
+            </div>
           </motion.div>
         </div>
 

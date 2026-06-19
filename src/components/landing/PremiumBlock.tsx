@@ -1,7 +1,7 @@
 "use client";
 
 // =============================================================================
-//  Landing — NightGram Premium block
+//  Landing — NightGram Premium block (Russian)
 // =============================================================================
 
 import { motion } from "framer-motion";
@@ -11,12 +11,12 @@ import { ScrollReveal } from "@/components/shared/ScrollReveal";
 import { AuroraBackground } from "@/components/shared/AuroraBackground";
 
 const perks = [
-  "Exclusive themes & glow effects",
-  "Animated avatar frames",
-  "Verified-style glow badge",
-  "2× NightCoins on every purchase",
-  "Priority real-time connections",
-  "Early access to new updates",
+  "Эксклюзивные темы и glow-эффекты",
+  "Анимированные рамки для аватара",
+  "Особый бейдж Premium со свечением",
+  "2× NightCoins при каждой покупке",
+  "Приоритетные подключения для скорости",
+  "Ранний доступ к новым функциям",
 ];
 
 export function PremiumBlock() {
@@ -38,13 +38,13 @@ export function PremiumBlock() {
                   <span className="text-sm font-semibold" style={{ color: "#fbbf24" }}>NightGram Premium</span>
                 </div>
                 <h2 className="font-display font-bold text-3xl md:text-5xl leading-tight">
-                  Glow brighter.
+                  Сияй ярче.
                   <br />
-                  <span style={{ color: "#fbbf24" }}>Stand out everywhere.</span>
+                  <span style={{ color: "#fbbf24" }}>Выделяйся везде.</span>
                 </h2>
                 <p className="mt-4 text-white/65 text-lg">
-                  Unlock the full NightGram experience. Premium syncs across
-                  web and mobile the moment you subscribe.
+                  Открой полный функционал NightGram. Premium синхронизируется
+                  между вебом и мобильным приложением в момент оформления.
                 </p>
 
                 <div className="mt-7 flex flex-col sm:flex-row gap-3">
@@ -54,7 +54,7 @@ export function PremiumBlock() {
                   </Link>
                 </div>
                 <p className="mt-3 text-xs text-white/40">
-                  Monthly &amp; yearly plans · Stripe · cancel anytime
+                  Помесячно и годовой план · от 230₽ · отмена в любой момент
                 </p>
               </div>
 

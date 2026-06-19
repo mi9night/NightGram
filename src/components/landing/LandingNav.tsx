@@ -38,7 +38,7 @@ export function LandingNav() {
 
           <nav className="hidden md:flex items-center gap-6 text-sm text-white/70">
             <a href="#features" className="hover:text-white transition">Возможности</a>
-            <a href="#premium" className="hover:text-white transition">Premium</a>
+            <a href="#premium" className="hover:text-white transition">Премиум</a>
             <Link href="/store" className="hover:text-white transition">Night Store</Link>
           </nav>
 
