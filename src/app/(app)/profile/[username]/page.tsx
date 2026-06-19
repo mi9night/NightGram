@@ -251,7 +251,7 @@ export default function ProfilePage({
               className="space-y-5"
             >
               {posts.map((p, i) => (
-                <PostCard key={p.id} post={{ ...p, author: { kind: "user", user: profile } }} index={i} />
+                <PostCard key={p.id} post={{ ...p, author: { kind: "user", user: safeProfile } }} index={i} />
               ))}
             </motion.div>
           ) : (
@@ -299,10 +299,10 @@ export default function ProfilePage({
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
+function Stat({ label, value }: { label: string; value: number | undefined }) {
   return (
     <div>
-      <div className="font-display font-bold text-lg">{formatCount(value)}</div>
+      <div className="font-display font-bold text-lg">{formatCount(value ?? 0)}</div>
       <div className="text-xs text-white/45">{label}</div>
     </div>
   );

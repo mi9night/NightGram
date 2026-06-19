@@ -7,7 +7,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /** Format a big number: 1200 -> "1.2K", 1500000 -> "1.5M". */
-export function formatCount(n: number): string {
+export function formatCount(n: number | undefined | null): string {
+  if (n === undefined || n === null || isNaN(n)) return "0";
   if (n < 1000) return `${n}`;
   if (n < 1_000_000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`;
   return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)}M`;
