@@ -97,8 +97,9 @@ export function AppNav() {
               })}
             </nav>
 
-            {/* Right — notifications + settings + avatar + logout */}
+            {/* Right — support + notifications + settings + avatar */}
             <div className="flex items-center gap-2">
+              <SupportButton />
               <NotificationBell />
               <Link
                 href="/settings"

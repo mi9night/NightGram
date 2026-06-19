@@ -1,32 +1,74 @@
 // =============================================================================
 //  NightGram Web — Media upload helper
-//  Uploads files through the backend as base64 (reliable, no multer issues).
+//  Direct upload to Supabase Storage from browser (fast, no base64 overhead).
+//  Requires Storage bucket "nightgram-media" with public read + write policies.
 // =============================================================================
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+import { createClient } from "@supabase/supabase-js";
 
-/**
- * Convert a File to base64 string.
- */
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+
+let client: ReturnType<typeof createClient> | null = null;
+
+function getClient() {
+  if (!client) {
+    client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false },
+    });
+  }
+  return client;
 }
 
 /**
- * Upload a media file via the backend.
+ * Upload a media file directly to Supabase Storage.
  * Returns a permanent public URL.
+ * Falls back to backend upload if direct fails.
  */
 export async function uploadMedia(
   file: File,
   folder: "avatars" | "posts" | "messages" = "posts",
 ): Promise<string> {
-  // Convert file to base64
-  const fileBase64 = await fileToBase64(file);
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error("Supabase не настроен");
+  }
+
+  const sb = getClient();
+  const ext = (file.name.split(".").pop() || "jpg").replace(/[^a-zA-Z0-9]/g, "").slice(0, 5) || "jpg";
+  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+
+  // Try direct upload to Storage
+  const { data, error } = await sb.storage
+    .from("nightgram-media")
+    .upload(path, file, {
+      cacheControl: "3600",
+      upsert: false,
+      contentType: file.type || "image/jpeg",
+    });
+
+  if (error) {
+    // If direct upload fails (RLS), try backend
+    return uploadViaBackend(file, folder);
+  }
+
+  // Get public URL
+  const { data: urlData } = sb.storage.from("nightgram-media").getPublicUrl(path);
+  return urlData.publicUrl;
+}
+
+/**
+ * Fallback: upload via backend as base64 (slower but works if Storage RLS blocks).
+ */
+async function uploadViaBackend(file: File, folder: string): Promise<string> {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
+
+  // Convert to base64
+  const fileBase64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 
   const token = typeof window !== "undefined" ? localStorage.getItem("ng_access_token") : null;
 
