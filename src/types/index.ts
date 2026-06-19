@@ -32,7 +32,7 @@ export interface User {
   followingCount: number;
   postsCount: number;
   createdAt: string;
-  role: "user" | "creator" | "moderator" | "admin";
+  role: "user" | "creator" | "moderator" | "admin" | "support" | "co_owner" | "owner";
   ownedItems: StoreItem["id"][];
   notificationSettings: NotificationSettings;
 }
@@ -265,4 +265,91 @@ export interface AppearanceSettings {
   glassOpacity: number; // 0.2 - 0.85
   reducedMotion: boolean;
   fontSize: "sm" | "base" | "lg";
+}
+
+// ---- Moderation / Admin ----------------------------------------------------
+
+export type PunishmentType = "ban" | "mute_dm" | "mute_posts" | "warning";
+
+export interface Punishment {
+  id: ID;
+  userId: ID;
+  type: PunishmentType;
+  reason: string;
+  duration: string; // "7d", "permanent", "30d"
+  issuedBy: ID;
+  issuedByName: string;
+  createdAt: string;
+  expiresAt: string | null;
+  active: boolean;
+}
+
+export type TicketStatus = "open" | "in_progress" | "resolved" | "unresolved" | "closed";
+
+export interface ModerationTicket {
+  id: ID;
+  subject: string;
+  body: string;
+  category: string;
+  status: TicketStatus;
+  authorId: ID;
+  authorName: string;
+  createdAt: string;
+  assignedTo?: string;
+  priority: "low" | "medium" | "high";
+}
+
+export type ReportCategory =
+  | "spam"
+  | "scam"
+  | "harassment"
+  | "nsfw"
+  | "violence"
+  | "copyright"
+  | "other";
+
+export interface Report {
+  id: ID;
+  targetType: "post" | "comment" | "user";
+  targetId: ID;
+  category: ReportCategory;
+  reason: string;
+  reporterId: ID;
+  reporterName: string;
+  status: "pending" | "reviewed" | "actioned";
+  createdAt: string;
+}
+
+export interface ModerationLog {
+  id: ID;
+  action: string;
+  adminId: ID;
+  adminName: string;
+  targetUserId: ID;
+  targetUserName: string;
+  details: string;
+  createdAt: string;
+}
+
+export interface BroadcastNotification {
+  id: ID;
+  title: string;
+  subtitle: string;
+  body: string;
+  icon: string;
+  createdAt: string;
+}
+
+export type PurchaseStatus = "pending" | "approved" | "rejected";
+
+export interface PurchaseRequest {
+  id: ID;
+  userId: ID;
+  username: string;
+  ngId: number;
+  itemType: "premium" | "coins";
+  itemName: string;
+  price: number;
+  status: PurchaseStatus;
+  createdAt: string;
 }
