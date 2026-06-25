@@ -8,6 +8,7 @@ import type {
   ClientToServerEvents,
   ServerToClientEvents,
 } from "@/types";
+import { getStoredAccessToken } from "@/lib/api";
 
 export type NgSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
@@ -19,12 +20,11 @@ let socket: NgSocket | null = null;
 export function getSocket(): NgSocket {
   if (socket) return socket;
 
-  const token =
-    typeof window !== "undefined" ? localStorage.getItem("ng_access_token") : null;
+  const token = getStoredAccessToken();
 
   socket = io(SOCKET_URL, {
     auth: { token },
-    transports: ["websocket"],
+    transports: ["websocket", "polling"],
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
@@ -53,6 +53,7 @@ export function getSocket(): NgSocket {
 /** Connect (called from the SocketProvider after login). */
 export function connectSocket() {
   const s = getSocket();
+  s.auth = { token: getStoredAccessToken() };
   if (!s.connected) s.connect();
   return s;
 }
@@ -64,4 +65,17 @@ export function disconnectSocket() {
     socket.disconnect();
     socket = null;
   }
+}
+
+export function refreshSocketAuth() {
+  if (!socket) return;
+  socket.auth = { token: getStoredAccessToken() };
+  if (socket.connected) {
+    socket.disconnect();
+    socket.connect();
+  }
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("nightgram:auth-token-refresh", refreshSocketAuth);
 }

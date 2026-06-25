@@ -369,7 +369,7 @@ export function mockNotifications(): AppNotification[] {
     {
       id: uid("n"),
       type: "store",
-      title: "Night Store",
+      title: "Магазин",
       body: "Новое обновление: Void Theme уже доступен 💎",
       avatarUrl: null,
       read: true,

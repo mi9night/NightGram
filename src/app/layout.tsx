@@ -5,7 +5,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import { SocketProvider } from "@/context/SocketProvider";
 import { AppearanceProvider } from "@/context/AppearanceContext";
 import { NotificationsProvider } from "@/context/NotificationsContext";
-import { NotificationToast } from "@/components/shared/NotificationToast";
+import { GlobalRuntime } from "@/components/shared/GlobalRuntime";
 
 const inter = Inter({
   subsets: ["latin", "cyrillic"],
@@ -59,7 +59,7 @@ export default function RootLayout({
             <SocketProvider>
               <NotificationsProvider>
                 {children}
-                <NotificationToast />
+                <GlobalRuntime />
               </NotificationsProvider>
             </SocketProvider>
           </AuthProvider>

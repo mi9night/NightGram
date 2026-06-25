@@ -15,14 +15,17 @@ import {
   type ReactNode,
 } from "react";
 import type { AuthSession, User } from "@/types";
-import { api } from "@/lib/api";
+import { api, clearStoredAuth, getStoredAccessToken, getStoredRefreshToken, persistAuthTokens } from "@/lib/api";
 
 interface AuthContextValue {
   user: User | null;
+  /** Backward-compatible flag for old UI components. Demo mode was removed. */
+  isDemo: boolean;
   status: "loading" | "authenticated" | "unauthenticated";
   login: (email: string, password: string) => Promise<void>;
-  register: (username: string, email: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string, options?: { login?: string; displayName?: string }) => Promise<void>;
   logout: () => Promise<void>;
+  switchAccount: (session: AuthSession) => void;
   updateUser: (patch: Partial<User>) => void;
 }
 
@@ -39,17 +42,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Hydrate the session once on mount.
   useEffect(() => {
-    const token = localStorage.getItem("ng_access_token");
+    const token = getStoredAccessToken();
+    const refresh = getStoredRefreshToken();
 
     // Clear any leftover demo token from previous sessions.
     if (token === DEMO_TOKEN) {
-      localStorage.removeItem("ng_access_token");
-      localStorage.removeItem("ng_refresh_token");
+      clearStoredAuth();
       setStatus("unauthenticated");
       return;
     }
 
-    if (!token) {
+    if (!token && !refresh) {
       setStatus("unauthenticated");
       return;
     }
@@ -57,17 +60,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api
       .me()
       .then((user) => {
+        localStorage.setItem("ng_cached_user", JSON.stringify(user));
         setSession({
           user,
-          accessToken: token,
-          refreshToken: localStorage.getItem("ng_refresh_token") ?? "",
+          accessToken: getStoredAccessToken() ?? token ?? "",
+          refreshToken: getStoredRefreshToken() ?? "",
           expiresAt: Date.now() + 15 * 60 * 1000,
         });
         setStatus("authenticated");
       })
-      .catch(() => {
-        localStorage.removeItem("ng_access_token");
-        localStorage.removeItem("ng_refresh_token");
+      .catch((err) => {
+        const message = err instanceof Error ? err.message : String(err);
+        const transient = message.includes("Сервер долго отвечает")
+          || message.includes("прерван")
+          || message.includes("Failed to fetch")
+          || message.includes("NetworkError")
+          || message.includes("aborted");
+
+        if (transient) {
+          const cached = localStorage.getItem("ng_cached_user");
+          if (cached) {
+            try {
+              const user = JSON.parse(cached) as User;
+              setSession({
+                user,
+                accessToken: getStoredAccessToken() ?? token ?? "",
+                refreshToken: getStoredRefreshToken() ?? "",
+                expiresAt: Date.now() + 15 * 60 * 1000,
+              });
+              setStatus("authenticated");
+              return;
+            } catch {
+              /* fall through */
+            }
+          }
+          // Keep tokens so a refresh/retry can recover. Do not hard-logout on a sleeping backend.
+          setStatus("unauthenticated");
+          return;
+        }
+
+        clearStoredAuth();
         setStatus("unauthenticated");
       });
   }, []);
@@ -79,8 +111,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(
-    async (username: string, email: string, password: string) => {
-      const s = await api.register({ username, email, password });
+    async (username: string, email: string, password: string, options?: { login?: string; displayName?: string }) => {
+      const s = await api.register({ username, email, password, ...options });
       setSession(s);
       setStatus("authenticated");
     },
@@ -93,22 +125,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus("unauthenticated");
   }, []);
 
+  const switchAccount = useCallback((nextSession: AuthSession) => {
+    persistAuthTokens(nextSession.accessToken, nextSession.refreshToken);
+    localStorage.setItem("ng_cached_user", JSON.stringify(nextSession.user));
+    setSession(nextSession);
+    setStatus("authenticated");
+    window.dispatchEvent(new CustomEvent("nightgram:account-switch", { detail: { userId: nextSession.user.id } }));
+  }, []);
+
   const updateUser = useCallback((patch: Partial<User>) => {
-    setSession((prev) =>
-      prev && prev.user ? { ...prev, user: { ...prev.user, ...patch } } : prev,
-    );
+    setSession((prev) => {
+      if (!prev?.user) return prev;
+      const next = { ...prev, user: { ...prev.user, ...patch } };
+      localStorage.setItem("ng_cached_user", JSON.stringify(next.user));
+      try {
+        const raw = localStorage.getItem("ng_multi_accounts");
+        const accounts = raw ? JSON.parse(raw) as AuthSession[] : [];
+        const updated = accounts.map((account) => account.user?.id === next.user.id ? { ...account, user: next.user } : account);
+        localStorage.setItem("ng_multi_accounts", JSON.stringify(updated));
+      } catch { /* optional */ }
+      return next;
+    });
   }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       user: session?.user ?? null,
+      isDemo: false,
       status,
       login,
       register,
       logout,
+      switchAccount,
       updateUser,
     }),
-    [session, status, login, register, logout, updateUser],
+    [session, status, login, register, logout, switchAccount, updateUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

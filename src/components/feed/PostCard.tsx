@@ -6,7 +6,7 @@
 //  views, save, share. Original NightGram layout (not an Instagram clone).
 // =============================================================================
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import {
@@ -15,7 +15,6 @@ import {
   Send,
   Bookmark,
   Eye,
-  MoreHorizontal,
   Play,
 } from "lucide-react";
 import type { Post } from "@/types";
@@ -25,31 +24,102 @@ import { cn, formatCount, timeAgo } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
 import { CommentSheet } from "./CommentSheet";
-import { RoleBadge, PremiumBadge } from "@/components/shared/RoleBadge";
+import { RoleBadge, PremiumBadge, VerifiedBadge } from "@/components/shared/RoleBadge";
 import { PostMenu } from "./PostMenu";
+import { MediaViewer, type MediaViewerItem } from "@/components/shared/MediaViewer";
+import { pushGlobalToast } from "@/lib/toast";
+import { removeSavedItem, saveItem } from "@/lib/saved";
 
-const QUICK_REACTIONS = ["🔥", "❤️", "😮", "✨", "💜"];
+const QUICK_REACTIONS = ["🔥", "❤️", "😂", "😮", "😢", "👏", "💜", "✨", "👍", "💯", "🤯", "😍"];
 
-export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
+export function PostCard({
+  post,
+  index = 0,
+  onDeleted,
+  enableProfilePin = false,
+  onPinned,
+}: {
+  post: Post;
+  index?: number;
+  onDeleted?: (postId: string) => void;
+  enableProfilePin?: boolean;
+  onPinned?: (postId: string, pinned: boolean, pinnedAt?: string | null) => void;
+}) {
   const router = useRouter();
   const { user } = useAuth();
   const [liked, setLiked] = useState(post.liked);
   const [saved, setSaved] = useState(post.saved);
+  const [pinnedOnProfile, setPinnedOnProfile] = useState(Boolean(post.pinnedOnProfile));
   const [likes, setLikes] = useState(post.likesCount);
+  const [views, setViews] = useState(post.viewsCount);
   const [showReactions, setShowReactions] = useState(false);
   const [reaction, setReaction] = useState<string | null>(null);
   const [onCommentOpen, setOnCommentOpen] = useState(false);
+  const [heartBurst, setHeartBurst] = useState(0);
+  const [deleted, setDeleted] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
+  const articleRef = useRef<HTMLElement | null>(null);
+  const viewedRef = useRef(false);
 
-  function toggleLike() {
+  useEffect(() => {
+    const node = articleRef.current;
+    if (!node || viewedRef.current) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting || viewedRef.current) return;
+        viewedRef.current = true;
+        setViews((v) => v + 1);
+        api.viewPost(post.id).catch(() => {});
+        observer.disconnect();
+      },
+      { threshold: 0.55 },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [post.id]);
+
+  function showToast(message: string, kind: "default" | "success" | "error" | "info" = "default") {
+    pushGlobalToast(message, kind);
+  }
+
+  function toggleLike(withToast = true) {
     const next = !liked;
     setLiked(next);
     setLikes((n) => n + (next ? 1 : -1));
+    if (withToast) showToast(next ? "Лайк поставлен" : "Лайк убран");
     api.toggleLike(post.id).catch(() => {});
+  }
+
+  function likeFromDoubleTap() {
+    setHeartBurst((v) => v + 1);
+    if (!liked) {
+      setLiked(true);
+      setLikes((n) => n + 1);
+      showToast("Лайк поставлен");
+      api.toggleLike(post.id).catch(() => {});
+    }
   }
 
   function toggleSave() {
     const next = !saved;
     setSaved(next);
+    if (next) {
+      const firstMedia = post.media?.[0];
+      saveItem({
+        id: `post:${post.id}`,
+        type: firstMedia ? "media" : "post",
+        title: "Сохранённый пост",
+        text: post.text ?? undefined,
+        mediaUrl: firstMedia?.url,
+        mediaType: firstMedia?.type,
+        source: username,
+        createdAt: new Date().toISOString(),
+      });
+    } else {
+      removeSavedItem(`post:${post.id}`);
+    }
+    showToast(next ? "Пост сохранён в Избранное" : "Пост убран из Избранного");
     api.toggleSave(post.id).catch(() => {});
   }
 
@@ -58,18 +128,84 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
     setShowReactions(false);
   }
 
+  async function sharePost() {
+    const url = `${window.location.origin}/feed?post=${post.id}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "NightGram", text: post.text ?? "Пост NightGram", url });
+      } else {
+        await navigator.clipboard.writeText(url);
+      }
+      showToast("Ссылка скопирована");
+    } catch {
+      // User cancelled native share — no noisy error.
+    }
+  }
+
+
+  async function toggleProfilePin() {
+    const previous = pinnedOnProfile;
+    setPinnedOnProfile(!previous);
+    try {
+      const res = await api.toggleProfilePostPin(post.id);
+      setPinnedOnProfile(res.pinned);
+      onPinned?.(post.id, res.pinned, res.pinnedAt ?? null);
+      showToast(res.pinned ? "Пост закреплён в профиле" : "Пост откреплён", "success");
+    } catch (error) {
+      setPinnedOnProfile(previous);
+      const message = error instanceof Error ? error.message : "Не удалось закрепить пост";
+      showToast(message, "error");
+    }
+  }
+
+  async function deletePost() {
+    try {
+      await api.deletePost(post.id);
+      showToast("Пост удалён", "success");
+      window.setTimeout(() => {
+        setDeleted(true);
+        onDeleted?.(post.id);
+      }, 650);
+    } catch {
+      showToast("Не удалось удалить пост", "error");
+    }
+  }
+
+  function handleDoubleClick(e: React.MouseEvent) {
+    const target = e.target as HTMLElement;
+    if (target.closest("button,a,input,textarea,video")) return;
+    likeFromDoubleTap();
+  }
+
   const authorUser = post.author.kind === "user" ? post.author.user : null;
   const authorChannel = post.author.kind === "channel" ? post.author.channel : null;
   const displayName = authorUser?.displayName ?? authorChannel?.name ?? "";
   const username = authorUser?.username ?? authorChannel?.handle ?? "";
   const avatar = authorUser?.avatarUrl ?? authorChannel?.avatarUrl ?? null;
+  // В ленте каналы должны выглядеть как нейтральный белый профиль: без цветных boost-frame/glow.
+  // Само оформление канала остаётся на странице канала и в настройках оформления.
   const glow = authorUser?.glowEffect ?? undefined;
-  const frame = authorUser?.avatarFrame ?? authorChannel?.verified ? "channel" : undefined;
-  const color = authorUser?.nameColor ?? "#a855f7";
+  const frame = authorUser?.avatarFrame ?? undefined;
+  const color = authorUser?.nameColor ?? (authorChannel ? "#ffffff" : "#a855f7");
+  const authorHref = post.author.kind === "channel" ? `/channels/${username}` : `/profile/${username}`;
   const verified = authorChannel?.verified || authorUser?.isPremium;
+  const canDeletePost = post.author.kind === "user"
+    ? authorUser?.id === user?.id
+    : authorChannel?.ownerId === user?.id || ["owner", "co_owner", "admin", "editor", "moderator"].includes(authorChannel?.myRole ?? "");
+
+  const mediaItems: MediaViewerItem[] = (post.media ?? []).map((m, i) => ({
+    id: m.id || `${post.id}-${i}`,
+    type: m.type,
+    url: m.url,
+    thumbnailUrl: m.thumbnailUrl,
+  }));
+
+  if (deleted) return null;
 
   return (
     <motion.article
+      ref={articleRef}
+      onDoubleClick={handleDoubleClick}
       initial={{ opacity: 0, y: 40 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: Math.min(index * 0.06, 0.3), ease: [0.16, 1, 0.3, 1] }}
@@ -79,21 +215,22 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
       {/* Header */}
       <div className="flex items-center gap-3 p-4">
         <button
-          onClick={() => router.push(`/profile/${username}`)}
+          onClick={() => router.push(authorHref)}
           className="shrink-0 transition hover:scale-105"
           title={displayName}
         >
-          <GlowAvatar src={avatar} alt={displayName} size={46} glow={glow} frame={frame} />
+          <GlowAvatar src={avatar} alt={displayName} size={46} glow={glow} frame={frame} ringColor={color} />
         </button>
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             <button
-              onClick={() => router.push(`/profile/${username}`)}
+              onClick={() => router.push(authorHref)}
               className="font-semibold truncate hover:underline"
               style={{ color }}
             >
               {displayName}
             </button>
+            {(authorUser?.verified || authorUser?.avatarFrame === "verified") && <VerifiedBadge size={16} />}
             {authorUser?.isPremium && (
               <PremiumBadge size={16} />
             )}
@@ -102,7 +239,7 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
             )}
           </div>
           <div className="flex items-center gap-1.5 text-xs text-white/45">
-            <button onClick={() => router.push(`/profile/${username}`)} className="hover:opacity-80 transition">
+            <button onClick={() => router.push(authorHref)} className="hover:opacity-80 transition">
               <ColoredUsername username={username} color={color} glow={false} />
             </button>
             <span>·</span>
@@ -117,23 +254,24 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
         <div className="ml-auto">
           <PostMenu
             itemType="пост"
-            isOwner={post.author.kind === "user" && authorUser?.id === user?.id}
+            isOwner={Boolean(canDeletePost)}
             isAdmin={["admin", "owner", "co_owner", "moderator"].includes(user?.role ?? "")}
-            onDelete={() => {
-              if (confirm("Удалить этот пост?")) {
-                fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/posts/${post.id}`, {
-                  method: "DELETE",
-                  headers: { Authorization: `Bearer ${localStorage.getItem("ng_access_token")}` },
-                }).then(() => window.location.reload()).catch(() => {});
-              }
-            }}
+            onDelete={deletePost}
+            onPin={enableProfilePin && post.author.kind === "user" ? toggleProfilePin : undefined}
+            pinned={pinnedOnProfile}
             onReport={(category, reason) => {
               api.createReport({ targetType: "post", targetId: post.id, category, reason }).catch(() => {});
-              alert("Жалоба отправлена. Спасибо!");
+              showToast("Жалоба отправлена", "success");
             }}
           />
         </div>
       </div>
+
+      {pinnedOnProfile && enableProfilePin && (
+        <div className="mx-4 mb-2 inline-flex w-max items-center gap-1 rounded-full border border-neon-purple/25 bg-neon-purple/10 px-2.5 py-1 text-[11px] font-semibold text-neon-purple">
+          Закреплено в профиле
+        </div>
+      )}
 
       {/* Text — with "show more" for long posts */}
       {post.text && <PostText text={post.text} />}
@@ -145,9 +283,18 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
             {post.media.map((m) => (
               <div key={m.id} className="relative group">
                 {m.type === "video" ? (
-                  <VideoMedia src={m.url} poster={m.thumbnailUrl} />
+                  <VideoMedia src={m.url} poster={m.thumbnailUrl} onOpen={() => { setViewerIndex(post.media.findIndex((x) => x.id === m.id)); setViewerOpen(true); }} />
                 ) : (
-                  <motion.div whileHover={{ scale: 1.03 }} transition={{ type: "spring", stiffness: 200, damping: 18 }}>
+                  <motion.button
+                    type="button"
+                    onClick={() => {
+                      setViewerIndex(post.media.findIndex((x) => x.id === m.id));
+                      setViewerOpen(true);
+                    }}
+                    whileHover={{ scale: 1.03 }}
+                    transition={{ type: "spring", stiffness: 200, damping: 18 }}
+                    className="block w-full text-left"
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={m.url}
@@ -155,7 +302,7 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
                       loading="lazy"
                       className="w-full max-h-[640px] object-cover rounded-3xl"
                     />
-                  </motion.div>
+                  </motion.button>
                 )}
               </div>
             ))}
@@ -189,7 +336,7 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
             <motion.div
               initial={{ opacity: 0, y: 10, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              className="absolute bottom-12 left-0 z-20 flex gap-1 rounded-full glass-strong px-2 py-1.5 shadow-glow"
+              className="absolute bottom-12 left-0 z-20 flex max-w-[260px] flex-wrap gap-1 rounded-3xl glass-strong px-2 py-1.5 shadow-glow"
             >
               {QUICK_REACTIONS.map((e) => (
                 <button
@@ -212,11 +359,11 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
           label={formatCount(post.commentsCount)}
           onClick={() => setOnCommentOpen((v) => !v)}
         />
-        <ActionButton icon={<Send size={20} />} label={formatCount(post.sharesCount)} />
+        <ActionButton icon={<Send size={20} />} label={formatCount(post.sharesCount)} onClick={sharePost} />
 
         <div className="ml-auto flex items-center gap-3">
           <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-white/45">
-            <Eye size={15} /> {formatCount(post.viewsCount)}
+            <Eye size={15} /> {formatCount(views)}
           </span>
           <button
             onClick={toggleSave}
@@ -230,11 +377,33 @@ export function PostCard({ post, index = 0 }: { post: Post; index?: number }) {
         </div>
       </div>
 
+      <AnimatePresence>
+        {heartBurst > 0 && (
+          <motion.div
+            key={heartBurst}
+            initial={{ opacity: 0, scale: 0.4 }}
+            animate={{ opacity: [0, 1, 0], scale: [0.4, 1.35, 1.8], y: [10, -10, -30] }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="pointer-events-none absolute inset-0 z-20 grid place-items-center"
+          >
+            <Heart size={86} className="fill-pink-500 text-pink-500 drop-shadow-[0_0_24px_rgba(236,72,153,0.9)]" />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <AnimatePresence initial={false}>
         {onCommentOpen && (
           <CommentSheet postId={post.id} onClose={() => setOnCommentOpen(false)} />
         )}
       </AnimatePresence>
+
+      <MediaViewer
+        items={mediaItems}
+        initialIndex={Math.max(0, viewerIndex)}
+        open={viewerOpen}
+        onClose={() => setViewerOpen(false)}
+      />
     </motion.article>
   );
 }
@@ -257,8 +426,14 @@ function ActionButton({
   return (
     <motion.button
       whileTap={{ scale: 0.85 }}
-      onClick={onClick}
-      onDoubleClick={onLongPress}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick?.();
+      }}
+      onDoubleClick={(e) => {
+        e.stopPropagation();
+        onLongPress?.();
+      }}
       className="flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm transition hover:bg-white/5"
       style={{ color: active ? activeColor : undefined }}
     >
@@ -268,7 +443,7 @@ function ActionButton({
   );
 }
 
-function VideoMedia({ src, poster }: { src: string; poster?: string }) {
+function VideoMedia({ src, poster, onOpen }: { src: string; poster?: string; onOpen?: () => void }) {
   const [playing, setPlaying] = useState(false);
   return (
     <div className="relative aspect-video w-full">
@@ -278,15 +453,18 @@ function VideoMedia({ src, poster }: { src: string; poster?: string }) {
         poster={poster}
         controls={playing}
         playsInline
-        className="h-full w-full rounded-3xl object-cover"
+        className="h-full w-full rounded-3xl object-cover cursor-zoom-in"
         onPlay={() => setPlaying(true)}
+        onDoubleClick={(e) => { e.stopPropagation(); onOpen?.(); }}
       />
       {!playing && (
         <button
           onClick={(e) => {
+            e.stopPropagation();
             const v = (e.currentTarget.previousElementSibling as HTMLVideoElement);
             v?.play();
           }}
+          onDoubleClick={(e) => { e.stopPropagation(); onOpen?.(); }}
           className="absolute inset-0 grid place-items-center rounded-3xl bg-black/30"
         >
           <span className="grid place-items-center h-14 w-14 rounded-full btn-glow">

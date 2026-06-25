@@ -5,11 +5,22 @@
 // =============================================================================
 
 import { createClient } from "@supabase/supabase-js";
+import { getStoredAccessToken } from "@/lib/api";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 
 let client: ReturnType<typeof createClient> | null = null;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const timeout = new Promise<T>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
 
 function getClient() {
   if (!client) {
@@ -38,13 +49,17 @@ export async function uploadMedia(
   const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
   // Try direct upload to Storage
-  const { data, error } = await sb.storage
-    .from("nightgram-media")
-    .upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-      contentType: file.type || "image/jpeg",
-    });
+  const { data, error } = await withTimeout(
+    sb.storage
+      .from("nightgram-media")
+      .upload(path, file, {
+        cacheControl: "3600",
+        upsert: false,
+        contentType: file.type || "image/jpeg",
+      }),
+    25000,
+    "Supabase Storage долго отвечает",
+  );
 
   if (error) {
     // If direct upload fails (RLS), try backend
@@ -70,9 +85,9 @@ async function uploadViaBackend(file: File, folder: string): Promise<string> {
     reader.readAsDataURL(file);
   });
 
-  const token = typeof window !== "undefined" ? localStorage.getItem("ng_access_token") : null;
+  const token = getStoredAccessToken();
 
-  const res = await fetch(`${API_URL}/upload`, {
+  const res = await withTimeout(fetch(`${API_URL}/upload`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -84,7 +99,7 @@ async function uploadViaBackend(file: File, folder: string): Promise<string> {
       mimeType: file.type,
       folder,
     }),
-  });
+  }), 45000, "Backend upload долго отвечает");
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

@@ -4,7 +4,7 @@
 //  NightGram Web — Register page
 // =============================================================================
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -13,31 +13,60 @@ import type { LucideIcon } from "lucide-react";
 import { AuroraBackground } from "@/components/shared/AuroraBackground";
 import { NightGramWordmark } from "@/components/shared/NightGramLogo";
 import { useAuth } from "@/context/AuthContext";
+import { api } from "@/lib/api";
 
 export default function RegisterPage() {
   const { register } = useAuth();
   const router = useRouter();
 
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [form, setForm] = useState({ login: "", username: "", email: "", password: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((f) => ({ ...f, [k]: e.target.value }));
+  const [usernameCheck, setUsernameCheck] = useState<{ checking: boolean; available: boolean | null; reason?: string | null; normalized?: string }>({ checking: false, available: null });
+  const [usernameFocused, setUsernameFocused] = useState(false);
+
+  const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = k === "username"
+      ? e.target.value.toLowerCase().replace(/^@/, "").replace(/[^a-z0-9_]/g, "").slice(0, 24)
+      : e.target.value;
+    setForm((f) => ({ ...f, [k]: value }));
+  };
+
+  useEffect(() => {
+    const username = form.username.trim();
+    if (username.length < 3) {
+      setUsernameCheck({ checking: false, available: null, reason: username ? "Минимум 3 символа" : null });
+      return;
+    }
+    setUsernameCheck((prev) => ({ ...prev, checking: true }));
+    const timer = window.setTimeout(() => {
+      api.checkUsername(username)
+        .then((res) => setUsernameCheck({ checking: false, available: res.available, reason: res.reason, normalized: res.username }))
+        .catch(() => setUsernameCheck({ checking: false, available: null, reason: "Не удалось проверить" }));
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [form.username]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      await register(form.username, form.email, form.password);
+      if (usernameCheck.available === false) {
+        setError(usernameCheck.reason || "Юзернейм уже занят");
+        return;
+      }
+      await register(form.username, form.email, form.password, { login: form.login, displayName: form.login });
       router.replace("/feed");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Ошибка регистрации";
       if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
         setError("Не удалось подключиться к серверу. Проверьте интернет или попробуйте позже.");
+      } else if (msg.includes("Юзернейм") || msg.includes("username")) {
+        setError(msg.replace(/^API \d+: /, ""));
       } else if (msg.includes("409") || msg.includes("already") || msg.includes("duplicate")) {
-        setError("Этот email или username уже занят. Попробуйте другой.");
+        setError("Этот email или юзернейм уже занят. Попробуйте другой.");
       } else {
         setError("Ошибка: " + msg);
       }
@@ -70,27 +99,56 @@ export default function RegisterPage() {
           )}
 
           <form onSubmit={onSubmit} className="space-y-4">
-            <Field icon={User} label="Имя пользователя">
+            <Field icon={User} label="Логин" active={Boolean(form.login)}>
               <input
                 required
-                minLength={3}
-                value={form.username}
-                onChange={set("username")}
-                placeholder="username"
-                className="ng-input"
+                minLength={2}
+                value={form.login}
+                onChange={set("login")}
+                placeholder="Как вас показывать"
+                className="ng-input ng-input-with-icon"
               />
             </Field>
-            <Field icon={Mail} label="Email">
+            <label className="block">
+              <span className="block text-xs text-white/60 mb-1.5 ml-1">Юзернейм</span>
+              <div className={`ng-combo-input ${usernameFocused || form.username ? "is-active" : ""}`}>
+                <span className="ng-combo-prefix">@</span>
+                <input
+                  required
+                  minLength={3}
+                  value={form.username}
+                  onChange={set("username")}
+                  onFocus={() => setUsernameFocused(true)}
+                  onBlur={() => setUsernameFocused(false)}
+                  placeholder="username"
+                  className="ng-combo-control"
+                />
+              </div>
+              <div className="mt-1.5 min-h-4 text-[11px]">
+                {usernameCheck.checking ? (
+                  <span className="text-white/35">Проверяем username…</span>
+                ) : usernameCheck.available === true ? (
+                  <span className="text-emerald-300">@{usernameCheck.normalized || form.username} свободен</span>
+                ) : usernameCheck.available === false ? (
+                  <span className="text-red-300">{usernameCheck.reason || "Юзернейм уже занят"}</span>
+                ) : usernameCheck.reason ? (
+                  <span className="text-white/35">{usernameCheck.reason}</span>
+                ) : (
+                  <span className="text-white/30">3–24 символа: латиница, цифры и _</span>
+                )}
+              </div>
+            </label>
+            <Field icon={Mail} label="Почта" active={Boolean(form.email)}>
               <input
                 type="email"
                 required
                 value={form.email}
                 onChange={set("email")}
                 placeholder="you@nightgram.app"
-                className="ng-input"
+                className="ng-input ng-input-with-icon"
               />
             </Field>
-            <Field icon={Lock} label="Пароль">
+            <Field icon={Lock} label="Пароль" active={Boolean(form.password)}>
               <input
                 type="password"
                 required
@@ -98,13 +156,14 @@ export default function RegisterPage() {
                 value={form.password}
                 onChange={set("password")}
                 placeholder="минимум 6 символов"
-                className="ng-input"
+                className="ng-input ng-input-with-icon"
               />
             </Field>
 
+
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || usernameCheck.available === false || usernameCheck.checking}
               className="btn-glow w-full py-3.5 inline-flex items-center justify-center gap-2 disabled:opacity-60"
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <UserPlus size={18} />}
@@ -128,10 +187,13 @@ export default function RegisterPage() {
           background: rgba(14, 10, 34, 0.6);
           border: 1px solid rgba(168, 85, 247, 0.2);
           border-radius: 14px;
-          padding: 12px 14px 12px 42px;
+          padding: 12px 14px;
           color: #fff;
           outline: none;
           transition: all 0.2s;
+        }
+        :global(.ng-input.ng-input-with-icon) {
+          padding-left: 56px !important;
         }
         :global(.ng-input:focus) {
           border-color: rgba(168, 85, 247, 0.6);
@@ -148,17 +210,29 @@ export default function RegisterPage() {
 function Field({
   icon: Icon,
   label,
+  active = false,
   children,
 }: {
-  icon: LucideIcon;
+  icon: LucideIcon | null;
   label: string;
+  active?: boolean;
   children: React.ReactNode;
 }) {
+  const [focused, setFocused] = useState(false);
+  const hideIcon = active || focused;
   return (
     <label className="block">
       <span className="block text-xs text-white/60 mb-1.5 ml-1">{label}</span>
-      <div className="relative">
-        <Icon size={16} className="absolute left-3.5 top-3.5 text-white/40 pointer-events-none" />
+      <div
+        className={Icon ? `relative ng-icon-field ${hideIcon ? "is-active" : ""}` : "relative"}
+        onFocusCapture={() => setFocused(true)}
+        onBlurCapture={() => setFocused(false)}
+      >
+        {Icon && (
+          <span className={`ng-field-icon pointer-events-none absolute inset-y-0 left-4 flex w-5 items-center justify-center text-white/40 ${hideIcon ? "opacity-0 scale-90" : ""}`}>
+            <Icon size={16} strokeWidth={1.9} />
+          </span>
+        )}
         {children}
       </div>
     </label>

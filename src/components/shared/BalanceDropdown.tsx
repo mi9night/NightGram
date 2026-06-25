@@ -8,13 +8,15 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Crown, ChevronDown, Plus, Clock } from "lucide-react";
+import { Sparkles, Crown, ChevronDown, Plus, Clock, Zap } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
 
 export function BalanceDropdown() {
   const { user } = useAuth();
   const [open, setOpen] = useState(false);
+  const [activeBoosts, setActiveBoosts] = useState(0);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -25,6 +27,17 @@ export function BalanceDropdown() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  useEffect(() => {
+    if (!open || !user?.isPremium) return;
+    let active = true;
+    api.getMyChannelBoosts()
+      .then((boosts) => {
+        if (active) setActiveBoosts(boosts.length);
+      })
+      .catch(() => active && setActiveBoosts(0));
+    return () => { active = false; };
+  }, [open, user?.isPremium]);
+
   if (!user) return null;
 
   // Format premium end date
@@ -32,6 +45,8 @@ export function BalanceDropdown() {
   const premiumEndStr = premiumEnd
     ? premiumEnd.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" })
     : null;
+  const freeBoosts = user.boostBalance ?? 0;
+  const totalBoosts = freeBoosts + activeBoosts;
 
   return (
     <div className="relative" ref={ref}>
@@ -68,7 +83,7 @@ export function BalanceDropdown() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.96 }}
             transition={{ duration: 0.15 }}
-            className="absolute right-0 top-12 z-[70] w-72 ng-solid rounded-2xl shadow-glow-lg"
+            className="absolute right-0 top-12 z-[60] w-72 ng-solid rounded-2xl shadow-glow-lg"
           >
             {/* Balance */}
             <div className="p-4 border-b ng-divider">
@@ -102,9 +117,19 @@ export function BalanceDropdown() {
               </div>
 
               {user.isPremium && premiumEndStr ? (
-                <div className="flex items-center gap-1.5 mb-3">
-                  <Clock size={12} className="text-white/40" />
-                  <span className="text-[11px] text-white/50">До {premiumEndStr}</span>
+                <div className="mb-3 space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={12} className="text-white/40" />
+                    <span className="text-[11px] text-white/50">До {premiumEndStr}</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl glass px-3 py-2">
+                    <span className="flex items-center gap-1.5 text-[11px] text-white/55">
+                      <Zap size={12} className="text-neon-gold" /> Бусты
+                    </span>
+                    <span className="text-[11px] font-semibold text-neon-gold">
+                      {freeBoosts} свободно / {totalBoosts} всего
+                    </span>
+                  </div>
                 </div>
               ) : (
                 <p className="text-xs text-white/50 mb-3">Подписка не активирована</p>

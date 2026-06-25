@@ -6,7 +6,9 @@
 //  - Posts/comments/messages: compact icon with tooltip
 // =============================================================================
 
-import { Crown, Shield, Star, Headphones, User } from "lucide-react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Crown, Shield, Star, Headphones, User, CircleCheck } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -55,6 +57,14 @@ const ROLE_CONFIG: Record<string, { icon: LucideIcon; color: string; label: stri
   },
 };
 
+
+const VERIFIED_CONFIG = {
+  icon: CircleCheck,
+  color: "#38bdf8",
+  label: "Верифицирован",
+  desc: "Верифицированный пользователь NightGram.",
+};
+
 const PREMIUM_CONFIG = {
   icon: Crown,
   color: "#fbbf24",
@@ -69,11 +79,13 @@ export function RoleBadge({
   size = 16,
   showLabel = false,
   className,
+  disableTooltip = false,
 }: {
   role: string;
   size?: number;
   showLabel?: boolean;
   className?: string;
+  disableTooltip?: boolean;
 }) {
   const config = ROLE_CONFIG[role] ?? ROLE_CONFIG.user;
   return (
@@ -85,6 +97,7 @@ export function RoleBadge({
       size={size}
       showLabel={showLabel}
       className={className}
+      disableTooltip={disableTooltip}
     />
   );
 }
@@ -95,10 +108,12 @@ export function PremiumBadge({
   size = 16,
   showLabel = false,
   className,
+  disableTooltip = false,
 }: {
   size?: number;
   showLabel?: boolean;
   className?: string;
+  disableTooltip?: boolean;
 }) {
   return (
     <BadgeContent
@@ -109,6 +124,34 @@ export function PremiumBadge({
       size={size}
       showLabel={showLabel}
       className={className}
+      disableTooltip={disableTooltip}
+    />
+  );
+}
+
+
+// ===== Verified Badge =====
+export function VerifiedBadge({
+  size = 16,
+  showLabel = false,
+  className,
+  disableTooltip = false,
+}: {
+  size?: number;
+  showLabel?: boolean;
+  className?: string;
+  disableTooltip?: boolean;
+}) {
+  return (
+    <BadgeContent
+      icon={VERIFIED_CONFIG.icon}
+      color={VERIFIED_CONFIG.color}
+      label={VERIFIED_CONFIG.label}
+      desc={VERIFIED_CONFIG.desc}
+      size={size}
+      showLabel={showLabel}
+      className={className}
+      disableTooltip={disableTooltip}
     />
   );
 }
@@ -123,6 +166,7 @@ function BadgeContent({
   size = 16,
   showLabel = false,
   className,
+  disableTooltip = false,
 }: {
   icon: LucideIcon;
   color: string;
@@ -131,13 +175,53 @@ function BadgeContent({
   size?: number;
   showLabel?: boolean;
   className?: string;
+  disableTooltip?: boolean;
 }) {
+  const ref = useRef<HTMLElement | null>(null);
+  const [hovered, setHovered] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+
+  useLayoutEffect(() => setMounted(true), []);
+
+  useLayoutEffect(() => {
+    if (!hovered || !ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const width = 240;
+    const left = Math.min(Math.max(8, rect.left + rect.width / 2 - width / 2), window.innerWidth - width - 8);
+    const top = Math.min(rect.bottom + 10, window.innerHeight - 130);
+    setPos({ top: Math.max(8, top), left });
+  }, [hovered, label]);
+
+  const tooltip = !disableTooltip && mounted && hovered ? createPortal(
+    <div
+      className="pointer-events-none fixed z-[120500] w-60 rounded-2xl border border-white/10 bg-[#100a24]/96 p-3 text-left shadow-glow-lg backdrop-blur-xl"
+      style={{ top: pos.top, left: pos.left }}
+    >
+      <div className="mb-1 flex items-center gap-1.5 text-xs font-semibold whitespace-normal" style={{ color }}>
+        <Icon size={12} /> {label}
+      </div>
+      <p className="text-[11px] leading-relaxed text-white/68 whitespace-normal break-words">{desc}</p>
+    </div>,
+    document.body,
+  ) : null;
+
+  const triggerProps = {
+    onMouseEnter: () => setHovered(true),
+    onMouseLeave: () => setHovered(false),
+    onFocus: () => setHovered(true),
+    onBlur: () => setHovered(false),
+    title: desc,
+  };
+
   // --- Profile mode: pill with icon + title ---
   if (showLabel) {
     return (
       <div
+        ref={(node) => { ref.current = node; }}
+        {...triggerProps}
         className={cn(
-          "group relative inline-flex items-center gap-2 rounded-full px-3 py-1.5 shrink-0",
+          "relative inline-flex items-center gap-2 rounded-full px-3 py-1.5 shrink-0",
           className,
         )}
         style={{
@@ -146,27 +230,18 @@ function BadgeContent({
           boxShadow: `0 0 12px ${color}22`,
         }}
       >
-        <Icon size={size} style={{ color, fill: color }} />
-        <span className="text-xs font-semibold" style={{ color }}>
+        <Icon size={size} style={{ color, fill: label === "Верифицирован" ? "none" : color }} />
+        <span className="text-xs font-semibold whitespace-nowrap" style={{ color }}>
           {label}
         </span>
-
-        {/* Tooltip — anchored right to stay within card */}
-        <div className="pointer-events-none absolute top-full right-0 mt-2 opacity-0 group-hover:opacity-100 transition-opacity z-50 w-48">
-          <div className="ng-solid rounded-xl p-3 shadow-glow-lg">
-            <div className="font-semibold text-xs mb-1 flex items-center gap-1.5" style={{ color }}>
-              <Icon size={12} /> {label}
-            </div>
-            <p className="text-[11px] text-white/65 leading-relaxed">{desc}</p>
-          </div>
-        </div>
+        {tooltip}
       </div>
     );
   }
 
   // --- Compact mode (posts, comments, messages): icon only ---
   return (
-    <span className={cn("group relative inline-flex items-center shrink-0", className)}>
+    <span ref={(node) => { ref.current = node; }} {...triggerProps} className={cn("relative inline-flex items-center shrink-0", className)}>
       <span
         className="grid place-items-center rounded-full transition"
         style={{
@@ -178,20 +253,11 @@ function BadgeContent({
       >
         <Icon
           size={size - 2}
-          style={{ color, fill: color }}
+          style={{ color, fill: label === "Верифицирован" ? "none" : color }}
           className="pointer-events-none"
         />
       </span>
-
-      {/* Tooltip — anchored left to stay within post cards */}
-      <div className="pointer-events-none absolute top-full left-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity z-50 w-48">
-        <div className="ng-solid rounded-xl p-3 shadow-glow-lg">
-          <div className="font-semibold text-xs mb-1 flex items-center gap-1.5" style={{ color }}>
-            <Icon size={12} /> {label}
-          </div>
-          <p className="text-[11px] text-white/65 leading-relaxed">{desc}</p>
-        </div>
-      </div>
+      {tooltip}
     </span>
   );
 }

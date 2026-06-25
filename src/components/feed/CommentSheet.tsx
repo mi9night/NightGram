@@ -4,7 +4,7 @@
 //  Feed — CommentSheet (expandable inline comments)
 // =============================================================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, Send, Loader2, MessageSquare } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -16,6 +16,7 @@ import { api } from "@/lib/api";
 import { uid } from "@/lib/utils";
 import { RoleBadge, PremiumBadge } from "@/components/shared/RoleBadge";
 import { PostMenu } from "./PostMenu";
+import { pushGlobalToast } from "@/lib/toast";
 
 export function CommentSheet({ postId, onClose }: { postId: string; onClose: () => void }) {
   const { user } = useAuth();
@@ -24,6 +25,8 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
   const [loading, setLoading] = useState(true);
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -39,6 +42,10 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
     };
   }, [postId]);
 
+  function showToast(message: string, kind: "default" | "success" | "error" = "default") {
+    pushGlobalToast(message, kind);
+  }
+
   async function send(e: React.FormEvent) {
     e.preventDefault();
     if (!text.trim() || !user) return;
@@ -50,6 +57,7 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
     const optimistic: Comment = {
       id: uid("c"),
       postId,
+      parentId: replyTo?.id ?? null,
       author: {
         id: user.id,
         username: user.username,
@@ -63,9 +71,10 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
       createdAt: new Date().toISOString(),
     };
     setComments((c) => [...c, optimistic]);
+    setReplyTo(null);
 
     try {
-      const real = await api.addComment(postId, body);
+      const real = await api.addComment(postId, body, optimistic.parentId);
       setComments((c) => c.map((x) => (x.id === optimistic.id ? real : x)));
     } catch {
       /* keep optimistic */
@@ -73,6 +82,41 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
       setSending(false);
     }
   }
+
+  async function toggleCommentLike(commentId: string) {
+    const current = comments.find((comment) => comment.id === commentId);
+    setComments((prev) => prev.map((comment) => comment.id === commentId
+      ? { ...comment, liked: !comment.liked, likesCount: Math.max(0, (comment.likesCount || 0) + (comment.liked ? -1 : 1)) }
+      : comment));
+    try {
+      const res = await api.toggleCommentLike(commentId);
+      setComments((prev) => prev.map((comment) => comment.id === commentId ? { ...comment, liked: res.liked, likesCount: res.likesCount } : comment));
+    } catch {
+      if (current) setComments((prev) => prev.map((comment) => comment.id === commentId ? current : comment));
+      showToast("Не удалось поставить лайк", "error");
+    }
+  }
+
+
+  async function toggleCommentPin(commentId: string) {
+    const current = comments.find((comment) => comment.id === commentId);
+    if (!current) return;
+    const previous = { pinned: Boolean(current.pinned), pinnedAt: current.pinnedAt ?? null };
+    setComments((prev) => prev
+      .map((comment) => comment.id === commentId ? { ...comment, pinned: !previous.pinned, pinnedAt: !previous.pinned ? new Date().toISOString() : null } : comment)
+      .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+    try {
+      const res = await api.toggleCommentPin(commentId);
+      setComments((prev) => prev
+        .map((comment) => comment.id === commentId ? { ...comment, pinned: res.pinned, pinnedAt: res.pinnedAt ?? null } : comment)
+        .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()));
+      showToast(res.pinned ? "Комментарий закреплён" : "Комментарий откреплён", "success");
+    } catch {
+      setComments((prev) => prev.map((comment) => comment.id === commentId ? { ...comment, ...previous } : comment));
+      showToast("Не удалось закрепить комментарий", "error");
+    }
+  }
+
 
   return (
     <motion.div
@@ -93,13 +137,15 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
           </div>
         ) : (
           <AnimatePresence initial={false}>
-            {comments.map((c) => (
+            {comments.map((c) => {
+              const parent = c.parentId ? comments.find((x) => x.id === c.parentId) : null;
+              return (
               <motion.div
                 key={c.id}
                 layout
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex gap-2.5"
+                className={cn("flex gap-2.5", c.parentId && "ml-8")}
               >
                 <button
                   onClick={() => router.push(`/profile/${c.author.username}`)}
@@ -123,51 +169,80 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
                         {"isPremium" in c.author && Boolean(c.author.isPremium) && (
                           <PremiumBadge size={14} />
                         )}
+                        {c.pinned && <span className="rounded-full bg-neon-purple/15 px-1.5 py-0.5 text-[9px] font-bold text-neon-purple">PIN</span>}
                       </div>
                       <div className="text-[11px]" style={{ color: c.author.nameColor, opacity: 0.6 }}>
                         @{c.author.username}
                       </div>
                     </button>
+                    {parent && (
+                      <div className="mb-1 text-[11px] text-neon-purple/80">↳ ответ @{parent.author.username}</div>
+                    )}
                     <p className="text-sm text-white/85 break-words mt-1">{c.text}</p>
                   </div>
                   <div className="flex items-center gap-3 mt-1 ml-1 text-[11px] text-white/40">
                     <span>{timeAgo(c.createdAt)}</span>
-                    <button className="hover:text-white transition flex items-center gap-1">
-                      <Heart size={11} /> {c.likesCount || ""}
+                    <button onClick={() => toggleCommentLike(c.id)} className={cn("hover:text-white transition flex items-center gap-1", c.liked && "text-pink-300")}>
+                      <Heart size={11} className={c.liked ? "fill-current" : ""} /> {c.likesCount || ""}
                     </button>
-                    <button className="hover:text-white transition">Ответить</button>
+                    <button
+                      className="hover:text-white transition"
+                      onClick={() => {
+                        setReplyTo(c);
+                        setTimeout(() => inputRef.current?.focus(), 0);
+                      }}
+                    >
+                      Ответить
+                    </button>
                     <div className="ml-auto">
                       <PostMenu
                         itemType="комментарий"
                         isOwner={c.author.id === user?.id}
                         isAdmin={["admin", "owner", "co_owner", "moderator"].includes(user?.role ?? "")}
+                        onPin={c.author.id === user?.id || ["admin", "owner", "co_owner", "moderator"].includes(user?.role ?? "") ? () => toggleCommentPin(c.id) : undefined}
+                        pinned={Boolean(c.pinned)}
                         onDelete={() => {
-                          fetch(`${process.env.NEXT_PUBLIC_API_URL ?? ""}/posts/comments/${c.id}`, {
-                            method: "DELETE",
-                            headers: { Authorization: `Bearer ${localStorage.getItem("ng_access_token")}` },
-                          }).then(() => window.location.reload()).catch(() => {});
+                          api.deleteComment(c.id)
+                            .then(() => setComments((prev) => prev.filter((x) => x.id !== c.id && x.parentId !== c.id)))
+                            .catch(() => showToast("Не удалось удалить комментарий", "error"));
                         }}
                         onReport={(category: string, reason: string) => {
                           api.createReport({ targetType: "comment", targetId: c.id, category, reason }).catch(() => {});
-                          alert("Жалоба отправлена!");
+                          showToast("Жалоба отправлена", "success");
                         }}
                       />
                     </div>
                   </div>
                 </div>
               </motion.div>
-            ))}
+            );})}
           </AnimatePresence>
         )}
+
+        <AnimatePresence>
+          {replyTo && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              className="flex items-center gap-2 rounded-2xl glass px-3 py-2 text-xs text-white/60"
+            >
+              <span className="text-neon-purple">Ответ @{replyTo.author.username}</span>
+              <span className="min-w-0 flex-1 truncate">{replyTo.text}</span>
+              <button onClick={() => setReplyTo(null)} className="text-white/40 hover:text-white">×</button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Composer */}
         <form onSubmit={send} className="flex items-center gap-2 pt-2">
           <GlowAvatar src={user?.avatarUrl ?? null} alt={user?.username ?? "me"} size={32} />
           <div className="flex-1 relative">
             <input
+              ref={inputRef}
               value={text}
               onChange={(e) => setText(e.target.value)}
-              placeholder="Добавить комментарий…"
+              placeholder={replyTo ? `Ответить @${replyTo.author.username}…` : "Добавить комментарий…"}
               className={cn(
                 "w-full rounded-full glass px-4 py-2.5 pr-11 text-sm outline-none transition",
                 "focus:border-neon-purple/50 focus:shadow-glow",
@@ -176,7 +251,7 @@ export function CommentSheet({ postId, onClose }: { postId: string; onClose: () 
             <button
               type="submit"
               disabled={!text.trim() || sending}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 grid place-items-center h-8 w-8 rounded-full btn-glow disabled:opacity-40"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 grid place-items-center h-8 w-8 rounded-full bg-gradient-to-br from-neon-purple to-neon-indigo text-white shadow-glow transition hover:brightness-110 disabled:opacity-40 disabled:hover:brightness-100"
             >
               {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             </button>

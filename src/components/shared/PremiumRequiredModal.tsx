@@ -7,7 +7,7 @@
 
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { Crown, X, Lock } from "lucide-react";
+import { Crown, X } from "lucide-react";
 
 export function PremiumRequiredModal({
   open,
@@ -25,7 +25,7 @@ export function PremiumRequiredModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[100] grid place-items-center p-4"
+          className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto p-4 py-6 sm:py-8"
         >
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
@@ -34,9 +34,8 @@ export function PremiumRequiredModal({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: "spring", stiffness: 260, damping: 26 }}
-            className="relative z-10 w-full max-w-sm ng-solid rounded-4xl p-6 text-center shadow-glow-lg"
+            className="relative z-10 w-full max-w-sm ng-solid rounded-4xl p-6 text-center shadow-glow-lg max-h-[calc(100dvh-2rem)] overflow-y-auto"
           >
-            {/* Close button */}
             <button
               onClick={onClose}
               className="absolute top-4 right-4 grid place-items-center h-8 w-8 rounded-lg glass text-white/50 hover:text-white transition"
@@ -44,22 +43,21 @@ export function PremiumRequiredModal({
               <X size={16} />
             </button>
 
-            {/* Crown icon — no black background */}
-            <div
-              className="mx-auto h-16 w-16 rounded-2xl grid place-items-center mb-4"
-              style={{ background: "linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.1))" }}
+            <motion.div
+              initial={{ rotate: -8, scale: 0.9 }}
+              animate={{ rotate: 0, scale: 1 }}
+              transition={{ type: "spring", stiffness: 180, damping: 14 }}
+              className="mx-auto mb-4 grid h-16 w-16 place-items-center"
             >
-              <Crown size={28} style={{ color: "#fbbf24", fill: "rgba(251,191,36,0.2)" }} />
-            </div>
+              <Crown size={44} style={{ color: "#fbbf24", fill: "rgba(251,191,36,0.22)", filter: "drop-shadow(0 0 18px rgba(251,191,36,0.55))" }} />
+            </motion.div>
 
-            {/* Text */}
             <h3 className="font-display font-bold text-xl">Нужен Premium</h3>
             <p className="text-white/55 text-sm mt-2">
               {feature} доступна только с подпиской NightGram Premium.
               Оформи подписку, чтобы разблокировать все возможности.
             </p>
 
-            {/* Buy button */}
             <Link
               href="/store/premium"
               onClick={onClose}
@@ -69,7 +67,6 @@ export function PremiumRequiredModal({
               <Crown size={18} /> Купить Premium
             </Link>
 
-            {/* Hint — no star icon */}
             <p className="text-[11px] text-white/30 mt-3">
               от 230₽ в месяц
             </p>

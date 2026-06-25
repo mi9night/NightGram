@@ -5,7 +5,7 @@
 //  Profile · Security · Notifications · Appearance · Integrations · Moderation
 // =============================================================================
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -26,27 +26,68 @@ import {
   Image as ImageIcon,
   Lock,
   Crown,
+  UsersRound,
+  UserPlus,
+  LogIn,
+  Star,
+  Ban,
+  Hash as HashIcon,
+  Search,
+  Plus,
+  Trash2,
+  X,
+  Volume2,
+  ShoppingBag,
+  Home,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import type { AppearanceSettings, NotificationSettings, User } from "@/types";
+import type { AppearanceSettings, AuthSession, NotificationSettings, User, StoreItem } from "@/types";
 import { AuroraBackground } from "@/components/shared/AuroraBackground";
 import { GlowAvatar } from "@/components/shared/GlowAvatar";
 import { useAuth } from "@/context/AuthContext";
 import { useAppearance, THEMES, ACCENTS } from "@/context/AppearanceContext";
-import { api } from "@/lib/api";
-import { uploadMedia } from "@/lib/supabase";
+import { api, getStoredAccessToken, getStoredRefreshToken } from "@/lib/api";
+import { uploadMedia } from "@/lib/upload";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { NAME_COLORS } from "@/lib/nameColors";
 import { PremiumRequiredModal } from "@/components/shared/PremiumRequiredModal";
+import { CustomSelect } from "@/components/shared/CustomSelect";
 
-type Tab = "profile" | "security" | "notifications" | "appearance" | "integrations" | "moderation";
+type Tab = "profile" | "accounts" | "room" | "social" | "security" | "notifications" | "appearance" | "audio" | "integrations" | "moderation";
+
+
+const MARKET_THEME_IDS = new Set(["navy", "mint", "void", "obsidian", "plum", "bloodmoon", "cyber", "aurora", "nebula", "dracula", "ice", "terminal", "coffee", "cream"]);
+const MARKET_ACCENT_IDS = MARKET_THEME_IDS;
+
+function isMarketNameColorId(id: string): boolean {
+  const graphiteIndex = NAME_COLORS.findIndex((preset) => preset.id === "graphite");
+  const index = NAME_COLORS.findIndex((preset) => preset.id === id);
+  return graphiteIndex >= 0 && index > graphiteIndex;
+}
+
+function isMarketAvatarFrameId(id: string | null): boolean {
+  return Boolean(id && id !== "verified" && id !== "premium");
+}
+
+function hasOwnedStoreEffect(items: StoreItem[], effectType: string, effectValue: string | null | undefined): boolean {
+  return items.some((item) => {
+    const type = item.effectType || item.category;
+    if (type !== effectType) return false;
+    if (effectValue === null || effectValue === undefined) return true;
+    return String(item.effectValue ?? "").toLowerCase() === String(effectValue).toLowerCase();
+  });
+}
 
 const TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: "profile", label: "Профиль", icon: UserIcon },
+  { id: "accounts", label: "Аккаунты", icon: UserPlus },
+  { id: "room", label: "Комната", icon: Home },
+  { id: "social", label: "Социальное", icon: UsersRound },
   { id: "security", label: "Безопасность", icon: Shield },
   { id: "notifications", label: "Уведомления", icon: Bell },
   { id: "appearance", label: "Внешний вид", icon: Palette },
+  { id: "audio", label: "Звук", icon: Volume2 },
   { id: "integrations", label: "Интеграции", icon: Plug },
   { id: "moderation", label: "Модерация", icon: Gavel },
 ];
@@ -60,7 +101,7 @@ export default function SettingsPage() {
   const tabs = isAdmin ? TABS : TABS.filter((t) => t.id !== "moderation");
 
   return (
-    <div className="relative max-w-4xl mx-auto px-4">
+    <div className="relative max-w-4xl mx-auto px-4 pb-28">
       <AuroraBackground intensity={0.4} className="absolute top-0 left-0 right-0 h-96 -z-10" />
 
       {/* Header */}
@@ -115,9 +156,13 @@ export default function SettingsPage() {
               transition={{ duration: 0.2 }}
             >
               {tab === "profile" && <ProfileSection />}
+              {tab === "accounts" && <AccountsSection />}
+              {tab === "room" && <RoomSection />}
+              {tab === "social" && <SocialSection />}
               {tab === "security" && <SecuritySection />}
               {tab === "notifications" && <NotificationsSection />}
               {tab === "appearance" && <AppearanceSection />}
+              {tab === "audio" && <AudioSection />}
               {tab === "integrations" && <IntegrationsSection />}
               {tab === "moderation" && <ModerationSection />}
             </motion.div>
@@ -128,9 +173,295 @@ export default function SettingsPage() {
   );
 }
 
+
+// =============================================================================
+//  Accounts section
+// =============================================================================
+
+const MULTI_ACCOUNTS_KEY = "ng_multi_accounts";
+
+type StoredAccount = AuthSession;
+
+function readStoredAccounts(): StoredAccount[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(localStorage.getItem(MULTI_ACCOUNTS_KEY) || "[]") as StoredAccount[];
+    const seen = new Set<string>();
+    return parsed
+      .filter((account) => account?.user?.id && account.accessToken && account.refreshToken)
+      .filter((account) => {
+        if (seen.has(account.user.id)) return false;
+        seen.add(account.user.id);
+        return true;
+      });
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredAccounts(accounts: StoredAccount[]) {
+  const seen = new Set<string>();
+  const clean = accounts.filter((account) => {
+    if (!account?.user?.id || seen.has(account.user.id)) return false;
+    seen.add(account.user.id);
+    return true;
+  });
+  localStorage.setItem(MULTI_ACCOUNTS_KEY, JSON.stringify(clean));
+  return clean;
+}
+
+function upsertStoredAccount(accounts: StoredAccount[], account: StoredAccount) {
+  return writeStoredAccounts([account, ...accounts.filter((item) => item.user.id !== account.user.id)]);
+}
+
+function currentStoredSession(user: User): StoredAccount | null {
+  const accessToken = getStoredAccessToken();
+  const refreshToken = getStoredRefreshToken();
+  if (!accessToken || !refreshToken) return null;
+  return {
+    user,
+    accessToken,
+    refreshToken,
+    expiresAt: Date.now() + 15 * 60 * 1000,
+  };
+}
+
+function AccountsSection() {
+  const router = useRouter();
+  const { user, switchAccount } = useAuth();
+  const [accounts, setAccounts] = useState<StoredAccount[]>([]);
+  const [adding, setAdding] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const limit = user?.isPremium ? 3 : 1;
+  const currentId = user?.id ?? "";
+  const canAdd = Boolean(user?.isPremium && accounts.length < limit);
+
+  useEffect(() => {
+    if (!user) return;
+    const stored = readStoredAccounts();
+    const current = currentStoredSession(user);
+    const next = current ? upsertStoredAccount(stored, current) : stored;
+    setAccounts(next);
+  }, [user]);
+
+  function openAddAccount() {
+    setError(null);
+    if (!user?.isPremium) {
+      setError("Дополнительные аккаунты доступны с Premium: основной аккаунт + 2 дополнительных.");
+      return;
+    }
+    if (accounts.length >= limit) {
+      setError("Лимит Premium: основной аккаунт + 2 дополнительных.");
+      return;
+    }
+    setModalOpen(true);
+  }
+
+  async function authenticateAccount(mode: "login" | "register", payload: { username?: string; email: string; password: string }) {
+    if (!user) return;
+    if (!user.isPremium) throw new Error("Дополнительные аккаунты доступны с Premium.");
+    if (accounts.length >= limit) throw new Error("Лимит Premium: основной аккаунт + 2 дополнительных.");
+
+    setAdding(true);
+    setError(null);
+    try {
+      const current = currentStoredSession(user);
+      const base = current ? upsertStoredAccount(accounts, current) : accounts;
+      const session = mode === "login"
+        ? await api.login({ email: payload.email.trim(), password: payload.password })
+        : await api.register({ username: (payload.username || "").trim(), email: payload.email.trim(), password: payload.password });
+      const next = upsertStoredAccount(base, session).slice(0, limit);
+      setAccounts(next);
+      switchAccount(session);
+      setModalOpen(false);
+      router.refresh();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Не удалось добавить аккаунт";
+      const clean = message.includes("401") ? "Неверная почта или пароль" : message;
+      setError(clean);
+      throw new Error(clean);
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  function switchTo(account: StoredAccount) {
+    switchAccount(account);
+    router.refresh();
+  }
+
+  function removeAccount(id: string) {
+    if (id === currentId) return;
+    const next = writeStoredAccounts(accounts.filter((account) => account.user.id !== id));
+    setAccounts(next);
+  }
+
+  if (!user) return null;
+
+  return (
+    <>
+      <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-5">
+        <SectionTitle icon={UserPlus} title="Аккаунты" desc="Быстро переключайся между несколькими аккаунтами NightGram" />
+
+        <div className="rounded-3xl glass p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold">Слоты аккаунтов</div>
+              <div className="text-xs text-white/45">Без Premium доступен 1 аккаунт. Premium открывает ещё 2 дополнительных.</div>
+            </div>
+            <div className="rounded-full border border-neon-purple/25 bg-neon-purple/10 px-3 py-1 text-xs font-bold text-neon-purple">
+              {accounts.length}/{limit}
+            </div>
+          </div>
+          {!user.isPremium && (
+            <div className="rounded-2xl border border-amber-300/20 bg-amber-300/8 px-3 py-2 text-xs text-amber-100">
+              <Crown size={13} className="mr-1 inline" /> Добавление второго и третьего аккаунта доступно с Premium.
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          {accounts.map((account) => {
+            const active = account.user.id === currentId;
+            return (
+              <div key={account.user.id} className={cn("flex items-center gap-3 rounded-3xl border p-3", active ? "border-neon-purple/40 bg-neon-purple/10 shadow-glow" : "border-white/10 bg-white/[0.035]") }>
+                <GlowAvatar src={account.user.avatarUrl} alt={account.user.username} size={46} glow={account.user.glowEffect ?? undefined} frame={account.user.avatarFrame ?? undefined} ringColor={account.user.nameColor} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <div className="truncate text-sm font-semibold">{account.user.displayName || account.user.username}</div>
+                    {account.user.isPremium && <span className="rounded-full bg-amber-300/10 px-2 py-0.5 text-[10px] font-bold text-amber-200">Premium</span>}
+                  </div>
+                  <div className="truncate text-xs text-white/42">@{account.user.username} · #{String(account.user.ngId ?? "").padStart(8, "0")}</div>
+                </div>
+                {active ? (
+                  <span className="rounded-xl bg-neon-purple/20 px-3 py-2 text-xs font-semibold text-white"><Check size={13} className="mr-1 inline" />Активен</span>
+                ) : (
+                  <div className="flex gap-2">
+                    <button onClick={() => switchTo(account)} className="btn-glow px-3 py-2 text-xs"><LogIn size={13} className="mr-1 inline" />Войти</button>
+                    <button onClick={() => removeAccount(account.user.id)} className="grid h-9 w-9 place-items-center rounded-xl border border-red-500/25 bg-red-500/10 text-red-300 hover:bg-red-500/15"><Trash2 size={14} /></button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="rounded-3xl glass p-4 space-y-3">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-2 font-semibold text-sm"><Plus size={15} className="text-neon-purple" /> Добавить аккаунт</div>
+              <div className="mt-1 text-xs text-white/42">Откроется отдельное окно: вход в существующий аккаунт или регистрация нового.</div>
+            </div>
+            <button onClick={openAddAccount} className="btn-glow px-5 py-3 text-sm disabled:opacity-45" disabled={adding || (user.isPremium && accounts.length >= limit)}>
+              <UserPlus size={15} className="mr-1 inline" /> Добавить
+            </button>
+          </div>
+          {error && <div className="rounded-2xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-300">{error}</div>}
+        </div>
+      </div>
+
+      <AccountAuthModal
+        open={modalOpen}
+        loading={adding}
+        onClose={() => setModalOpen(false)}
+        onSubmit={authenticateAccount}
+      />
+    </>
+  );
+}
+
+function AccountAuthModal({
+  open,
+  loading,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  loading: boolean;
+  onClose: () => void;
+  onSubmit: (mode: "login" | "register", payload: { username?: string; email: string; password: string }) => Promise<void>;
+}) {
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setMode("login");
+    setUsername("");
+    setEmail("");
+    setPassword("");
+    setLocalError(null);
+  }, [open]);
+
+  async function submit() {
+    setLocalError(null);
+    if (!email.trim() || !password.trim()) return;
+    if (mode === "register" && username.trim().length < 3) {
+      setLocalError("Username должен быть минимум 3 символа.");
+      return;
+    }
+    try {
+      await onSubmit(mode, { username, email, password });
+    } catch (error) {
+      setLocalError(error instanceof Error ? error.message : "Не удалось добавить аккаунт");
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[10000] grid place-items-center overflow-y-auto bg-black/70 p-4 py-6 sm:py-8 backdrop-blur-sm">
+          <div className="absolute inset-0" onClick={onClose} />
+          <motion.div initial={{ opacity: 0, y: 18, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 18, scale: 0.94 }} className="relative z-10 w-full max-w-md ng-solid rounded-4xl p-5 shadow-glow-lg max-h-[calc(100dvh-2rem)] overflow-y-auto">
+            <button onClick={onClose} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-lg glass text-white/50 hover:text-white"><X size={16} /></button>
+            <h3 className="font-display text-xl font-bold flex items-center gap-2"><UserPlus size={18} className="text-neon-purple" /> Добавить аккаунт</h3>
+            <p className="mt-1 text-xs text-white/45">Войди в существующий аккаунт или создай новый — после успеха NightGram переключится на него.</p>
+
+            <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl glass p-1">
+              <button onClick={() => setMode("login")} className={mode === "login" ? "btn-glow py-2 text-xs" : "rounded-xl px-3 py-2 text-xs text-white/55 hover:text-white"}>Войти</button>
+              <button onClick={() => setMode("register")} className={mode === "register" ? "btn-glow py-2 text-xs" : "rounded-xl px-3 py-2 text-xs text-white/55 hover:text-white"}>Регистрация</button>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {mode === "register" && (
+                <input value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))} placeholder="username" className="ng-input py-3 text-sm" maxLength={24} />
+              )}
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className="ng-input py-3 text-sm" />
+              <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={mode === "login" ? "Пароль" : "Пароль · минимум 6 символов"} className="ng-input py-3 text-sm" minLength={mode === "register" ? 6 : undefined} />
+              {localError && <div className="rounded-2xl border border-red-500/25 bg-red-500/10 px-3 py-2 text-xs text-red-300">{localError}</div>}
+              <button onClick={submit} disabled={loading || !email.trim() || !password.trim() || (mode === "register" && username.trim().length < 3)} className="btn-glow w-full py-3 text-sm disabled:opacity-45">
+                {loading ? <Loader2 size={15} className="mr-1 inline animate-spin" /> : mode === "login" ? <LogIn size={15} className="mr-1 inline" /> : <UserPlus size={15} className="mr-1 inline" />}
+                {mode === "login" ? "Войти и добавить" : "Создать и добавить"}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 // =============================================================================
 //  Profile section
 // =============================================================================
+
+const AVATAR_FRAME_PRESETS: { id: string | null; label: string; emoji: string; preview: string }[] = [
+  { id: null, label: "Без рамки", emoji: "○", preview: "linear-gradient(90deg, rgba(255,255,255,0.16), rgba(255,255,255,0.06))" },
+  { id: "gradient", label: "Aurora", emoji: "🌌", preview: "linear-gradient(90deg,#a855f7,#ec4899,#22d3ee)" },
+  { id: "rainbow", label: "Prism", emoji: "🌈", preview: "linear-gradient(90deg,#ef4444,#f97316,#facc15,#22c55e,#06b6d4,#6366f1,#ec4899)" },
+  { id: "premium", label: "Gold Nova", emoji: "👑", preview: "linear-gradient(90deg,#fbbf24,#f59e0b,#fff7ad)" },
+  { id: "verified", label: "Verified", emoji: "✅", preview: "linear-gradient(90deg,#38bdf8,#2563eb,#22d3ee)" },
+  { id: "dual:#a855f7:#ec4899", label: "Violet Rose", emoji: "💜", preview: "linear-gradient(90deg,#a855f7,#ec4899)" },
+  { id: "dual:#22d3ee:#8b5cf6", label: "Cyber Ice", emoji: "💎", preview: "linear-gradient(90deg,#22d3ee,#8b5cf6)" },
+  { id: "dual:#34d399:#14b8a6", label: "Emerald", emoji: "🍃", preview: "linear-gradient(90deg,#34d399,#14b8a6)" },
+  { id: "dual:#fb7185:#fbbf24", label: "Sunset", emoji: "🌇", preview: "linear-gradient(90deg,#fb7185,#fbbf24)" },
+  { id: "dual:#111827:#a855f7", label: "Void", emoji: "🖤", preview: "linear-gradient(90deg,#111827,#a855f7)" },
+];
 
 function ProfileSection() {
   const { user, updateUser } = useAuth();
@@ -144,9 +475,27 @@ function ProfileSection() {
   const [nameColor, setNameColor] = useState(user?.nameColor ?? "#a855f7");
   const [nameColorId, setNameColorId] = useState(user?.nameColorId ?? "night");
   const [customId, setCustomId] = useState(user?.customId ?? "");
+  const [nightStatusText, setNightStatusText] = useState(user?.nightStatusText ?? "");
+  const [nightStatusEmoji, setNightStatusEmoji] = useState(user?.nightStatusEmoji ?? "🌙");
+  const [avatarFrame, setAvatarFrame] = useState(user?.avatarFrame ?? null);
+  const [frameMenuOpen, setFrameMenuOpen] = useState(false);
+  const [ownedStoreItems, setOwnedStoreItems] = useState<StoreItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [showPremiumBannerModal, setShowPremiumBannerModal] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const username = user?.username;
+    if (!username) {
+      setOwnedStoreItems([]);
+      return;
+    }
+    api.getOwnedStoreItems(username)
+      .then((items) => { if (active) setOwnedStoreItems(items); })
+      .catch(() => { if (active) setOwnedStoreItems([]); });
+    return () => { active = false; };
+  }, [user?.username]);
 
   if (!user) return null;
 
@@ -173,7 +522,12 @@ function ProfileSection() {
       avatarUrl,
       bannerUrl,
       nameColor,
+      nameColorId,
+      avatarFrame,
       customId: customId.trim() || null,
+      nightStatusText: nightStatusText.trim() || null,
+      nightStatusEmoji: nightStatusText.trim() ? nightStatusEmoji : null,
+      nightStatusExpiresAt: nightStatusText.trim() ? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() : null,
     };
     try {
       const updated = await api.updateProfile(patch);
@@ -188,6 +542,11 @@ function ProfileSection() {
   }
 
   const ngIdDisplay = String(user.ngId).padStart(8, "0");
+  const availableAvatarFrames = user.verified || avatarFrame === "verified"
+    ? AVATAR_FRAME_PRESETS
+    : AVATAR_FRAME_PRESETS.filter((frame) => frame.id !== "verified");
+  const visibleAvatarFrames = availableAvatarFrames.filter((frame) => !isMarketAvatarFrameId(frame.id) || hasOwnedStoreEffect(ownedStoreItems, "avatar_frame", frame.id));
+  const activeAvatarFrame = visibleAvatarFrames.find((item) => item.id === avatarFrame) ?? visibleAvatarFrames[0] ?? AVATAR_FRAME_PRESETS[0];
 
   return (
     <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-5">
@@ -239,7 +598,8 @@ function ProfileSection() {
             alt={displayName || "me"}
             size={88}
             glow={nameColor === "#fbbf24" ? "gold" : nameColor === "#ec4899" ? "pink" : nameColor === "#22d3ee" ? "cyan" : "purple"}
-            ringColor="#0e0a22"
+            frame={avatarFrame ?? undefined}
+            ringColor={nameColor}
           />
           <span className="absolute inset-0 grid place-items-center rounded-full bg-black/50 opacity-0 group-hover:opacity-100 transition">
             <Camera size={22} />
@@ -261,6 +621,21 @@ function ProfileSection() {
       <FieldBlock label="О себе">
         <textarea value={bio} onChange={(e) => setBio(e.target.value)} maxLength={160} rows={3} placeholder="Расскажи о себе…" className="ng-input resize-none" />
         <div className="text-right text-xs text-white/30 mt-1">{bio.length}/160</div>
+      </FieldBlock>
+
+      <FieldBlock label="Night Status" icon={<Sparkles size={13} className="text-neon-purple" />}>
+        <div className="grid grid-cols-[72px_1fr] gap-2">
+          <input value={nightStatusEmoji} onChange={(e) => setNightStatusEmoji(e.target.value.slice(0, 3))} maxLength={3} className="ng-input text-center" placeholder="🌙" />
+          <input value={nightStatusText} onChange={(e) => setNightStatusText(e.target.value.slice(0, 48))} maxLength={48} className="ng-input" placeholder="в ночном режиме / слушаю музыку / не беспокоить" />
+        </div>
+        <div className="mt-2 flex flex-wrap gap-1.5">
+          {["🌙 в ночном режиме", "🎧 слушаю музыку", "💻 кодю", "🔥 открыт для общения", "🛡️ не беспокоить"].map((preset) => {
+            const [emoji, ...words] = preset.split(" ");
+            return <button key={preset} type="button" onClick={() => { setNightStatusEmoji(emoji); setNightStatusText(words.join(" ")); }} className="rounded-full glass px-2.5 py-1 text-[11px] text-white/55 hover:text-white">{preset}</button>;
+          })}
+          {nightStatusText && <button type="button" onClick={() => setNightStatusText("")} className="rounded-full bg-red-500/10 px-2.5 py-1 text-[11px] text-red-300">очистить</button>}
+        </div>
+        <div className="mt-2 text-[11px] text-white/35">Статус показывается в профиле и живёт 24 часа после сохранения.</div>
       </FieldBlock>
 
       {/* Custom ID — free for all */}
@@ -291,7 +666,57 @@ function ProfileSection() {
         setNameColor={(color, id) => { setNameColor(color); setNameColorId(id); }}
         activeId={nameColorId}
         isPremium={user.isPremium}
+        ownedStoreItems={ownedStoreItems}
       />
+
+      <div className="relative">
+        <span className="flex items-center gap-1.5 text-sm text-white/65 mb-2 ml-1">
+          <Sparkles size={13} className="text-neon-purple" /> Рамка аватара
+          {!user.isPremium && <span className="ml-auto text-[10px] text-white/30">нужен Premium</span>}
+        </span>
+        <button
+          type="button"
+          onClick={() => user.isPremium && setFrameMenuOpen((v) => !v)}
+          className={cn("flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition", user.isPremium ? "hover:brightness-110" : "opacity-55 cursor-not-allowed")}
+          style={{ background: `linear-gradient(135deg, rgba(7,3,18,0.68), rgba(7,3,18,0.94)), ${activeAvatarFrame.preview}`, borderColor: "rgba(255,255,255,0.16)", boxShadow: "0 0 18px rgba(168,85,247,0.14)" }}
+        >
+          <span className="grid h-10 w-10 place-items-center rounded-xl border border-white/10 text-lg" style={{ background: activeAvatarFrame.preview }}>
+            {activeAvatarFrame.emoji}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-white/80">{activeAvatarFrame.label}</span>
+            <span className="block text-xs text-white/40">Готовый пресет рамки, без ручной палитры</span>
+          </span>
+          <span className="text-xs text-white/35">{frameMenuOpen ? "Свернуть" : "Выбрать"}</span>
+        </button>
+        <AnimatePresence>
+          {frameMenuOpen && user.isPremium && (
+            <motion.div
+              initial={{ opacity: 0, y: -8, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -8, scale: 0.98 }}
+              className="ng-select-scroll mt-2 mb-4 max-h-72 overflow-y-auto rounded-3xl border border-neon-purple/30 bg-[#090512] p-2 pr-3 shadow-[0_0_34px_rgba(168,85,247,0.28)]"
+            >
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {visibleAvatarFrames.map((item) => {
+                  const active = avatarFrame === item.id;
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => { setAvatarFrame(item.id); setFrameMenuOpen(false); }}
+                      className={cn("rounded-2xl border px-3 py-2 text-left text-xs transition", active ? "bg-neon-purple/20 border-neon-purple/50 text-white shadow-glow" : "glass border-white/10 text-white/60 hover:text-white hover:border-white/25")}
+                    >
+                      <span className="mb-1 flex items-center gap-2"><span>{item.emoji}</span><span className="font-semibold">{item.label}</span></span>
+                      <span className="block h-1.5 rounded-full" style={{ background: item.preview }} />
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Save */}
       <div className="flex items-center gap-3 pt-2">
@@ -311,10 +736,10 @@ function ProfileSection() {
       <style jsx>{`
         :global(.ng-input) {
           width: 100%;
-          background: rgba(14, 10, 34, 0.6);
+          background: rgba(255, 255, 255, 0.055);
           border: 1px solid rgba(168, 85, 247, 0.2);
-          border-radius: 14px;
-          padding: 12px 14px;
+          border-radius: 20px;
+          padding: 14px 16px;
           color: #fff;
           outline: none;
           transition: all 0.2s;
@@ -332,68 +757,464 @@ function ProfileSection() {
 }
 
 // =============================================================================
+//  Social section
+// =============================================================================
+
+
+// =============================================================================
+//  Room section
+// =============================================================================
+
+const ROOM_SCENES: { id: NonNullable<User["roomScene"]>; label: string; emoji: string; bg: string; desc: string }[] = [
+  { id: "midnight", label: "Midnight Desk", emoji: "🌙", bg: "radial-gradient(circle at 18% 20%, rgba(168,85,247,0.34), transparent 38%), radial-gradient(circle at 84% 74%, rgba(99,102,241,0.24), transparent 42%)", desc: "Классическая ночная комната" },
+  { id: "cyber", label: "Cyber Room", emoji: "👾", bg: "radial-gradient(circle at 18% 20%, rgba(0,245,212,0.28), transparent 38%), radial-gradient(circle at 84% 74%, rgba(217,70,239,0.24), transparent 42%)", desc: "Неон, терминалы и cyber glow" },
+  { id: "gold", label: "Gold Lounge", emoji: "✨", bg: "radial-gradient(circle at 18% 20%, rgba(251,191,36,0.30), transparent 38%), radial-gradient(circle at 84% 74%, rgba(249,115,22,0.2), transparent 42%)", desc: "Тёплая premium-витрина" },
+  { id: "rain", label: "Rain Window", emoji: "🌧️", bg: "radial-gradient(circle at 18% 20%, rgba(56,189,248,0.25), transparent 38%), radial-gradient(circle at 84% 74%, rgba(30,41,59,0.34), transparent 42%)", desc: "Ночное окно и дождь" },
+  { id: "void", label: "Void Gallery", emoji: "🕳️", bg: "radial-gradient(circle at 18% 20%, rgba(17,24,39,0.58), transparent 38%), radial-gradient(circle at 84% 74%, rgba(168,85,247,0.24), transparent 42%)", desc: "Тёмная галерея коллекции" },
+];
+
+function RoomSection() {
+  const { user, updateUser } = useAuth();
+  const [musicArtist, setMusicArtist] = useState(user?.musicArtist ?? "");
+  const [musicTrack, setMusicTrack] = useState(user?.musicTrack ?? "");
+  const [roomScene, setRoomScene] = useState<NonNullable<User["roomScene"]>>(user?.roomScene || "midnight");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  if (!user) return null;
+
+  async function saveRoom() {
+    setSaving(true);
+    setSaved(false);
+    try {
+      const updated = await api.updateProfile({
+        musicArtist: musicArtist.trim() || null,
+        musicTrack: musicTrack.trim() || null,
+        roomScene,
+      });
+      updateUser(updated);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1800);
+    } catch {
+      // keep values editable
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-5">
+      <SectionTitle icon={Home} title="Комната профиля" desc="Отдельные настройки комнаты, музыки и атмосферы профиля" />
+
+      <div className="rounded-3xl glass p-4 space-y-3">
+        <SectionTitleInline icon={Volume2} title="Музыка комнаты" desc="Показывается в Profile Room и рядом с атмосферой профиля" />
+        <div className="grid gap-2 sm:grid-cols-2">
+          <input value={musicArtist} onChange={(e) => setMusicArtist(e.target.value.slice(0, 64))} maxLength={64} className="ng-input" placeholder="Автор / исполнитель" />
+          <input value={musicTrack} onChange={(e) => setMusicTrack(e.target.value.slice(0, 80))} maxLength={80} className="ng-input" placeholder="Название трека" />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {["Crystal Castles — Not In Love", "Pastel Ghost — Dark Beach", "Øneheart — Snowfall", "Mr.Kitty — After Dark"].map((preset) => {
+            const [artist, track] = preset.split(" — ");
+            return <button key={preset} type="button" onClick={() => { setMusicArtist(artist); setMusicTrack(track); }} className="rounded-full glass px-2.5 py-1 text-[11px] text-white/55 hover:text-white">{preset}</button>;
+          })}
+          {(musicArtist || musicTrack) && <button type="button" onClick={() => { setMusicArtist(""); setMusicTrack(""); }} className="rounded-full bg-red-500/10 px-2.5 py-1 text-[11px] text-red-300">очистить</button>}
+        </div>
+      </div>
+
+      <div className="rounded-3xl glass p-4 space-y-3">
+        <SectionTitleInline icon={Home} title="Сцена комнаты" desc="Выбери атмосферу Profile Room" />
+        <div className="grid gap-2 sm:grid-cols-2">
+          {ROOM_SCENES.map((scene) => {
+            const active = roomScene === scene.id;
+            return (
+              <button
+                key={scene.id}
+                type="button"
+                onClick={() => setRoomScene(scene.id)}
+                className={cn("relative overflow-hidden rounded-3xl border p-3 text-left transition", active ? "border-neon-purple/50 shadow-glow" : "border-white/10 hover:border-white/25")}
+              >
+                <div className="absolute inset-0 opacity-80" style={{ background: scene.bg }} />
+                <div className="relative flex items-center gap-3">
+                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-black/35 text-xl">{scene.emoji}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-white/85">{scene.label}</div>
+                    <div className="text-xs text-white/48">{scene.desc}</div>
+                  </div>
+                  {active && <Check size={16} className="text-neon-purple" />}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <button onClick={saveRoom} disabled={saving} className="btn-glow px-6 py-3 inline-flex items-center justify-center gap-2 disabled:opacity-60">
+        {saving ? <Loader2 size={18} className="animate-spin" /> : saved ? <Check size={18} /> : <Save size={18} />}
+        {saving ? "Сохранение…" : saved ? "Сохранено!" : "Сохранить комнату"}
+      </button>
+    </div>
+  );
+}
+
+function SocialSection() {
+  const { user, updateUser } = useAuth();
+  const [hideSocial, setHideSocial] = useState(Boolean(user?.hideSocial));
+  const [hidePurchases, setHidePurchases] = useState(Boolean(user?.hidePurchases));
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [circles, setCircles] = useState<Record<string, unknown>[]>([]);
+  const [circleName, setCircleName] = useState("Близкие");
+  const [circleColor, setCircleColor] = useState("#a855f7");
+  const [activeCircleId, setActiveCircleId] = useState<string | null>(null);
+  const [memberQuery, setMemberQuery] = useState("");
+  const [memberResults, setMemberResults] = useState<Record<string, unknown>[]>([]);
+
+  useEffect(() => {
+    api.getCircles().then((data) => {
+      setCircles(data as Record<string, unknown>[]);
+      const first = (data as Record<string, unknown>[])[0];
+      if (first) setActiveCircleId(String(first.id));
+    }).catch(() => setCircles([]));
+  }, []);
+
+  useEffect(() => {
+    if (memberQuery.trim().length < 2) {
+      setMemberResults([]);
+      return;
+    }
+    const timer = setTimeout(() => {
+      api.searchUsers(memberQuery).then((data) => setMemberResults(data as Record<string, unknown>[])).catch(() => setMemberResults([]));
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [memberQuery]);
+
+  async function togglePrivacy() {
+    const next = !hideSocial;
+    setHideSocial(next);
+    setSaving(true);
+    try {
+      const updated = await api.updateProfile({ hideSocial: next });
+      updateUser({ hideSocial: updated.hideSocial });
+      setNotice(next ? "Список друзей и каналов скрыт" : "Список друзей и каналов открыт");
+    } catch {
+      setHideSocial(!next);
+      setNotice("Не удалось сохранить настройку");
+    } finally {
+      setSaving(false);
+      window.setTimeout(() => setNotice(null), 2200);
+    }
+  }
+
+  async function togglePurchasesPrivacy() {
+    const next = !hidePurchases;
+    setHidePurchases(next);
+    setSaving(true);
+    try {
+      const updated = await api.updateProfile({ hidePurchases: next });
+      updateUser({ hidePurchases: updated.hidePurchases });
+      setNotice(next ? "Покупки скрыты от других" : "Покупки видны в профиле");
+    } catch {
+      setHidePurchases(!next);
+      setNotice("Не удалось сохранить настройку покупок");
+    } finally {
+      setSaving(false);
+      window.setTimeout(() => setNotice(null), 2200);
+    }
+  }
+
+  async function createCircle() {
+    if (!circleName.trim()) return;
+    setSaving(true);
+    try {
+      const circle = await api.createCircle({ name: circleName.trim(), color: circleColor }) as Record<string, unknown>;
+      setCircles((prev) => [...prev, circle]);
+      setActiveCircleId(String(circle.id));
+      setNotice("Круг создан");
+    } catch {
+      setNotice("Не удалось создать круг. Проверь миграцию private_circles.");
+    } finally {
+      setSaving(false);
+      window.setTimeout(() => setNotice(null), 2400);
+    }
+  }
+
+  async function deleteCircle(id: string) {
+    setSaving(true);
+    try {
+      await api.deleteCircle(id);
+      setCircles((prev) => prev.filter((circle) => String(circle.id) !== id));
+      if (activeCircleId === id) setActiveCircleId(null);
+    } catch {}
+    setSaving(false);
+  }
+
+  async function addMember(userId: string) {
+    if (!activeCircleId) return;
+    setSaving(true);
+    try {
+      await api.addCircleMember(activeCircleId, userId);
+      const userToAdd = memberResults.find((u) => String(u.id) === userId);
+      setCircles((prev) => prev.map((circle) => {
+        if (String(circle.id) !== activeCircleId) return circle;
+        const members = Array.isArray(circle.members) ? circle.members as Record<string, unknown>[] : [];
+        if (members.some((m) => String(m.id) === userId)) return circle;
+        return { ...circle, members: [...members, userToAdd].filter(Boolean) };
+      }));
+      setMemberQuery("");
+      setMemberResults([]);
+    } catch {}
+    setSaving(false);
+  }
+
+  async function removeMember(userId: string) {
+    if (!activeCircleId) return;
+    await api.removeCircleMember(activeCircleId, userId).catch(() => {});
+    setCircles((prev) => prev.map((circle) => String(circle.id) === activeCircleId
+      ? { ...circle, members: (Array.isArray(circle.members) ? circle.members as Record<string, unknown>[] : []).filter((m) => String(m.id) !== userId) }
+      : circle));
+  }
+
+  const activeCircle = activeCircleId ? circles.find((circle) => String(circle.id) === activeCircleId) ?? null : null;
+  const activeMembers = activeCircle && Array.isArray(activeCircle.members) ? activeCircle.members as Record<string, unknown>[] : [];
+
+  return (
+    <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-4">
+      <SectionTitleInline icon={UsersRound} title="Социальное" desc="Списки друзей и каналов теперь отображаются в профиле" />
+      {notice && <div className="rounded-2xl glass px-3 py-2 text-xs text-white/60">{notice}</div>}
+      <div className="rounded-2xl glass p-4 flex items-center gap-4">
+        <div className="h-11 w-11 rounded-xl grid place-items-center shrink-0" style={{ background: "rgb(var(--accent-main-rgb) / 0.15)" }}>
+          <Shield size={19} className="text-neon-purple" />
+        </div>
+        <div className="flex-1">
+          <div className="font-semibold text-sm">Скрыть друзей и подписанные каналы</div>
+          <div className="text-xs text-white/45 mt-0.5">Если включено, другие пользователи не увидят эти списки в твоём профиле.</div>
+        </div>
+        <button onClick={togglePrivacy} disabled={saving} className={hideSocial ? "btn-glow px-4 py-2 text-sm" : "btn-ghost px-4 py-2 text-sm"}>
+          {saving ? "…" : hideSocial ? "Скрыто" : "Открыто"}
+        </button>
+      </div>
+
+      <div className="rounded-2xl glass p-4 flex items-center gap-4">
+        <div className="h-11 w-11 rounded-xl grid place-items-center shrink-0" style={{ background: "rgb(var(--accent-main-rgb) / 0.15)" }}>
+          <ShoppingBag size={19} className="text-neon-purple" />
+        </div>
+        <div className="flex-1">
+          <div className="font-semibold text-sm">Скрыть купленные товары</div>
+          <div className="text-xs text-white/45 mt-0.5">Если включено, другие пользователи не увидят вкладку «Купленное» и коллекцию в комнате профиля.</div>
+        </div>
+        <button onClick={togglePurchasesPrivacy} disabled={saving} className={hidePurchases ? "btn-glow px-4 py-2 text-sm" : "btn-ghost px-4 py-2 text-sm"}>
+          {saving ? "…" : hidePurchases ? "Скрыто" : "Открыто"}
+        </button>
+      </div>
+
+      <div className="rounded-3xl glass p-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <div className="h-11 w-11 rounded-xl grid place-items-center shrink-0" style={{ background: "rgb(var(--accent-main-rgb) / 0.15)" }}>
+            <UsersRound size={19} className="text-neon-purple" />
+          </div>
+          <div className="flex-1">
+            <div className="font-semibold text-sm">Private Circles</div>
+            <div className="text-xs text-white/45">Близкие, команда, приват — подготовка к постам/сторис только для выбранного круга.</div>
+          </div>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-[1fr_170px_auto]">
+          <input value={circleName} onChange={(e) => setCircleName(e.target.value)} className="ng-input py-2.5 text-sm" placeholder="Название круга" />
+          <CustomSelect
+            value={circleColor}
+            onChange={setCircleColor}
+            buttonClassName="py-2.5 text-xs"
+            options={NAME_COLORS.slice(0, 12).map((preset) => ({ value: preset.color, label: `${preset.emoji} ${preset.label}`, description: preset.color }))}
+          />
+          <button onClick={createCircle} disabled={saving || !circleName.trim()} className="btn-glow px-4 py-2.5 text-sm disabled:opacity-50"><Plus size={14} className="inline mr-1" />Создать</button>
+        </div>
+
+        {circles.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            {circles.map((circle) => {
+              const id = String(circle.id);
+              const active = id === activeCircleId;
+              const color = String(circle.color ?? "#a855f7");
+              return (
+                <button key={id} onClick={() => setActiveCircleId(id)} className={active ? "rounded-2xl px-3 py-2 text-xs font-semibold text-white shadow-glow" : "rounded-2xl glass px-3 py-2 text-xs text-white/55"} style={active ? { background: `${color}33`, border: `1px solid ${color}66` } : undefined}>
+                  {String(circle.name)} · {(Array.isArray(circle.members) ? circle.members.length : 0)}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {activeCircle && (
+          <div className="rounded-3xl bg-white/[0.03] p-3">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex-1 text-sm font-semibold" style={{ color: String(activeCircle.color ?? "#a855f7") }}>{String(activeCircle.name)}</div>
+              <button onClick={() => deleteCircle(String(activeCircle.id))} className="grid h-8 w-8 place-items-center rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500/15"><Trash2 size={14} /></button>
+            </div>
+            <div className="relative mb-3">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+              <input value={memberQuery} onChange={(e) => setMemberQuery(e.target.value)} className="ng-input py-2.5 pl-8 text-sm" placeholder="Добавить пользователя…" />
+            </div>
+            {memberResults.length > 0 && (
+              <div className="mb-3 max-h-40 space-y-1 overflow-y-auto rounded-2xl glass p-2">
+                {memberResults.map((u) => (
+                  <button key={String(u.id)} onClick={() => addMember(String(u.id))} className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left hover:bg-white/5">
+                    <GlowAvatar src={(u.avatarUrl as string) ?? (u.avatar_url as string) ?? null} alt={String(u.username ?? "")} size={28} />
+                    <span className="min-w-0 flex-1 truncate text-sm">@{String(u.username ?? "")}</span>
+                    <Plus size={13} className="text-neon-purple" />
+                  </button>
+                ))}
+              </div>
+            )}
+            {activeMembers.length === 0 ? (
+              <div className="py-5 text-center text-xs text-white/35">В круге пока никого нет</div>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {activeMembers.map((m) => (
+                  <span key={String(m.id)} className="inline-flex items-center gap-2 rounded-full glass px-2 py-1 text-xs text-white/65">
+                    @{String(m.username ?? "")}
+                    <button onClick={() => removeMember(String(m.id))} className="text-white/35 hover:text-red-300"><X size={12} /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      <p className="text-xs text-white/40">Открой свой профиль и нажми на цифры «Друзья» или «Каналы», чтобы увидеть списки. Private Circles уже готовы для следующего шага — видимость постов/сторис по кругам.</p>
+    </div>
+  );
+}
+
+// =============================================================================
 //  Security section
 // =============================================================================
 
 function SecuritySection() {
+  const { user, updateUser } = useAuth();
+  const [email, setEmail] = useState(user?.email ?? "");
+  const [emailPassword, setEmailPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [deletePassword, setDeletePassword] = useState("");
+  const [saving, setSaving] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
+  function notify(text: string) {
+    setMessage(text);
+    window.setTimeout(() => setMessage(null), 3000);
+  }
+
+  async function saveEmail() {
+    if (!email.trim() || !emailPassword.trim()) return notify("Укажи новую почту и текущий пароль");
+    setSaving("email");
+    try {
+      const updated = await api.changeEmail(email.trim(), emailPassword);
+      updateUser({ email: updated.email });
+      setEmailPassword("");
+      notify("Почта обновлена");
+    } catch {
+      notify("Не удалось сменить почту: проверь пароль");
+    } finally { setSaving(null); }
+  }
+
+  async function savePassword() {
+    if (!currentPassword || newPassword.length < 8) return notify("Новый пароль минимум 8 символов");
+    setSaving("password");
+    try {
+      await api.changePassword(currentPassword, newPassword);
+      setCurrentPassword(""); setNewPassword("");
+      notify("Пароль обновлён");
+    } catch { notify("Не удалось сменить пароль: проверь текущий пароль"); }
+    finally { setSaving(null); }
+  }
+
+  async function requestDelete() {
+    if (!deletePassword) return notify("Введите пароль для подтверждения");
+    setSaving("delete");
+    try {
+      const updated = await api.requestAccountDeletion(deletePassword);
+      updateUser({ deletionRequestedAt: updated.deletionRequestedAt, deletionScheduledAt: updated.deletionScheduledAt });
+      setDeletePassword("");
+      notify("Удаление аккаунта запланировано. У тебя есть 24 часа, чтобы отменить.");
+    } catch { notify("Не удалось запланировать удаление: проверь пароль и миграции"); }
+    finally { setSaving(null); }
+  }
+
+  async function cancelDelete() {
+    if (!deletePassword) return notify("Введите пароль для отмены удаления");
+    setSaving("cancelDelete");
+    try {
+      const updated = await api.cancelAccountDeletion(deletePassword);
+      updateUser({ deletionRequestedAt: updated.deletionRequestedAt, deletionScheduledAt: updated.deletionScheduledAt });
+      setDeletePassword("");
+      notify("Удаление аккаунта отменено");
+    } catch { notify("Не удалось отменить: проверь пароль"); }
+    finally { setSaving(null); }
+  }
+
   return (
-    <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-5">
-      <SectionTitle icon={Shield} title="Безопасность" desc="Пароль, почта и защита аккаунта" />
+    <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-4">
+      <SectionTitle icon={Shield} title="Безопасность" desc="Почта, пароль и удаление аккаунта" />
+      {message && <div className="rounded-2xl glass px-3 py-2 text-xs text-white/65">{message}</div>}
 
-      <FieldBlock label="Email">
-        <input type="email" defaultValue="you@nightgram.app" disabled className="ng-input opacity-60" />
-      </FieldBlock>
+      <div className="grid lg:grid-cols-2 gap-4">
+        <div className="rounded-3xl glass p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <AtSign size={16} className="text-neon-purple" />
+            <div>
+              <div className="font-semibold text-sm">Смена почты</div>
+              <div className="text-xs text-white/45">Нужен текущий пароль</div>
+            </div>
+          </div>
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="new@email.com" className="ng-input" />
+          <input type="password" value={emailPassword} onChange={(e) => setEmailPassword(e.target.value)} placeholder="Текущий пароль" className="ng-input" />
+          <button onClick={saveEmail} disabled={saving === "email"} className="btn-glow w-full py-2.5 text-sm disabled:opacity-50">
+            {saving === "email" ? "Сохраняем…" : "Сменить почту"}
+          </button>
+        </div>
 
-      <FieldBlock label="Текущий пароль">
-        <input type="password" placeholder="••••••••" className="ng-input" />
-      </FieldBlock>
-
-      <div className="grid sm:grid-cols-2 gap-3">
-        <FieldBlock label="Новый пароль">
-          <input type="password" placeholder="Минимум 8 символов" className="ng-input" />
-        </FieldBlock>
-        <FieldBlock label="Повторите пароль">
-          <input type="password" placeholder="••••••••" className="ng-input" />
-        </FieldBlock>
+        <div className="rounded-3xl glass p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Lock size={16} className="text-neon-purple" />
+            <div>
+              <div className="font-semibold text-sm">Смена пароля</div>
+              <div className="text-xs text-white/45">Минимум 8 символов</div>
+            </div>
+          </div>
+          <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} placeholder="Текущий пароль" className="ng-input" />
+          <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="Новый пароль" className="ng-input" />
+          <button onClick={savePassword} disabled={saving === "password"} className="btn-glow w-full py-2.5 text-sm disabled:opacity-50">
+            {saving === "password" ? "Сохраняем…" : "Сменить пароль"}
+          </button>
+        </div>
       </div>
 
-      <button className="btn-glow px-5 py-2.5 text-sm inline-flex items-center gap-2">
-        <Save size={15} /> Обновить пароль
-      </button>
-
-      {/* 2FA */}
-      <div className="rounded-2xl glass p-4 flex items-center gap-4 mt-4">
-        <div className="h-11 w-11 rounded-xl grid place-items-center shrink-0" style={{ background: "rgb(var(--accent-main-rgb) / 0.15)" }}>
-          <Shield size={20} className="text-neon-purple" />
+      <div className="rounded-3xl border border-red-500/25 bg-red-500/5 p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <Shield size={16} className="text-red-300" />
+          <div>
+            <div className="font-semibold text-sm text-red-200">Удаление аккаунта</div>
+            <div className="text-xs text-white/45">После запроса есть 24 часа, чтобы передумать. Для отмены тоже нужен пароль.</div>
+          </div>
         </div>
-        <div className="flex-1">
-          <div className="font-semibold text-sm">Двухфакторная аутентификация (2FA)</div>
-          <div className="text-xs text-white/45 mt-0.5">Дополнительный уровень защиты при входе</div>
+        {user?.deletionScheduledAt && (
+          <div className="rounded-2xl glass px-3 py-2 text-xs text-red-200">
+            Удаление запланировано до {new Date(user.deletionScheduledAt).toLocaleString("ru-RU")}
+          </div>
+        )}
+        <input type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} placeholder="Пароль" className="ng-input" />
+        <div className="flex flex-wrap gap-2">
+          <button onClick={requestDelete} disabled={saving === "delete"} className="rounded-xl bg-red-500/20 border border-red-500/40 px-4 py-2.5 text-sm text-red-200 hover:bg-red-500/30 transition disabled:opacity-50">
+            {saving === "delete" ? "…" : "Запланировать удаление"}
+          </button>
+          {user?.deletionScheduledAt && (
+            <button onClick={cancelDelete} disabled={saving === "cancelDelete"} className="btn-ghost px-4 py-2.5 text-sm disabled:opacity-50">
+              {saving === "cancelDelete" ? "…" : "Передумал, отменить"}
+            </button>
+          )}
         </div>
-        <span className="rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.35)", color: "#fbbf24" }}>
-          Скоро
-        </span>
       </div>
-
-      <style jsx>{`
-        :global(.ng-input) {
-          width: 100%;
-          background: rgba(14, 10, 34, 0.6);
-          border: 1px solid rgba(168, 85, 247, 0.2);
-          border-radius: 14px;
-          padding: 12px 14px;
-          color: #fff;
-          outline: none;
-          transition: all 0.2s;
-        }
-        :global(.ng-input:focus) {
-          border-color: rgba(168, 85, 247, 0.6);
-          box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
-        }
-        :global(.ng-input::placeholder) {
-          color: rgba(255, 255, 255, 0.3);
-        }
-      `}</style>
     </div>
   );
 }
@@ -418,11 +1239,11 @@ function NotificationsSection() {
 
   const items: { key: keyof NotificationSettings; label: string; desc: string }[] = [
     { key: "push", label: "Push-уведомления", desc: "Получать уведомления в браузере" },
-    { key: "messages", label: "Сообщения", desc: "Новые сообщения в мессенджере" },
+    { key: "messages", label: "Сообщения", desc: "Всплывающие уведомления о новых сообщениях в правом нижнем углу" },
     { key: "likes", label: "Лайки", desc: "Когда оценивают твои посты" },
     { key: "comments", label: "Комментарии", desc: "Ответы на твои посты" },
     { key: "newFollowers", label: "Новые подписчики", desc: "Когда кто-то подписывается" },
-    { key: "storeDrops", label: "Новые обновления", desc: "Обновления и новинки в Night Store" },
+    { key: "storeDrops", label: "Новые обновления", desc: "Обновления и новинки в магазине" },
     { key: "sounds", label: "Звуки", desc: "Звуковые эффекты уведомлений" },
   ];
 
@@ -490,6 +1311,21 @@ function SectionTitleInline({ icon: Icon, title, desc }: { icon: LucideIcon; tit
 
 function AppearanceSection() {
   const { settings, theme, accent, setTheme, setAccent, setGlassOpacity, setReducedMotion, setFontSize, reset } = useAppearance();
+  const { user } = useAuth();
+  const [ownedStoreItems, setOwnedStoreItems] = useState<StoreItem[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    const username = user?.username;
+    if (!username) {
+      setOwnedStoreItems([]);
+      return;
+    }
+    api.getOwnedStoreItems(username)
+      .then((items) => { if (active) setOwnedStoreItems(items); })
+      .catch(() => { if (active) setOwnedStoreItems([]); });
+    return () => { active = false; };
+  }, [user?.username]);
 
   const fontSizes: { id: AppearanceSettings["fontSize"]; label: string }[] = [
     { id: "sm", label: "S" },
@@ -506,7 +1342,7 @@ function AppearanceSection() {
           <span className="text-xs text-white/40 flex items-center gap-1">{theme.emoji} {theme.label}</span>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
-          {THEMES.map((t) => {
+          {THEMES.filter((t) => !MARKET_THEME_IDS.has(t.id) || hasOwnedStoreEffect(ownedStoreItems, "theme", t.id)).map((t) => {
             const active = settings.theme === t.id;
             return (
               <button
@@ -551,7 +1387,7 @@ function AppearanceSection() {
           <span className="text-xs text-white/40 flex items-center gap-1">{accent.emoji} {accent.label}</span>
         </div>
         <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
-          {ACCENTS.map((a) => {
+          {ACCENTS.filter((a) => !MARKET_ACCENT_IDS.has(a.id) || hasOwnedStoreEffect(ownedStoreItems, "accent", a.id)).map((a) => {
             const active = settings.accent === a.id;
             return (
               <button
@@ -658,172 +1494,148 @@ function AppearanceSection() {
 }
 
 
+
 // =============================================================================
-//  Integrations section
+//  Audio section
 // =============================================================================
 
-function IntegrationsSection() {
-  const [connecting, setConnecting] = useState<string | null>(null);
-  const [vkToken, setVkToken] = useState("");
-  const [vkConnected, setVkConnected] = useState(false);
-  const [connectedServices, setConnectedServices] = useState<Set<string>>(new Set());
+function AudioSection() {
+  const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
+  const [selectedOutput, setSelectedOutput] = useState("");
 
-  const integrations = [
-    {
-      id: "discord",
-      name: "Discord",
-      desc: "Подключи аккаунт — получи роль на сервере и доступ к закрытым каналам",
-      emoji: "🎮",
-      color: "#5865F2",
-      type: "oauth" as const,
-      href: "https://discord.gg/nightgram",
-    },
-    {
-      id: "spotify",
-      name: "Spotify",
-      desc: "Покажи что слушаешь, делись треками прямо в профиле и чатах",
-      emoji: "🎵",
-      color: "#1DB954",
-      type: "oauth" as const,
-      href: "https://accounts.spotify.com/oauth/authorize?client_id=nightgram&response_type=code&redirect_uri=https://night-gram.vercel.app/integrations/spotify&scope=user-read-currently-playing+user-top-read+playlist-read-private",
-    },
-    {
-      id: "soundcloud",
-      name: "SoundCloud",
-      desc: "Интеграция твоих треков и плейлистов в профиль",
-      emoji: "☁️",
-      color: "#FF5500",
-      type: "oauth" as const,
-      href: "https://soundcloud.com/connect?client_id=nightgram&redirect_uri=https://night-gram.vercel.app/integrations/soundcloud&response_type=code&scope=non-expiring",
-    },
-    {
-      id: "vk",
-      name: "VK Музыка",
-      desc: "Импорт любимых треков и статуса прослушивания через токен",
-      emoji: "💙",
-      color: "#0077FF",
-      type: "token" as const,
-      href: "#",
-    },
-  ];
+  useEffect(() => {
+    setSelectedOutput(localStorage.getItem("ng_audio_output_device") || "");
+    async function refreshAudioOutputs() {
+      if (!navigator.mediaDevices?.enumerateDevices) return;
+      const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+      setAudioOutputs(devices.filter((device) => device.kind === "audiooutput"));
+    }
+    refreshAudioOutputs();
+    navigator.mediaDevices?.addEventListener?.("devicechange", refreshAudioOutputs);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshAudioOutputs);
+  }, []);
 
-  function connectOAuth(id: string, href: string) {
-    setConnecting(id);
-    window.open(href, "_blank", "noopener,noreferrer");
-    setTimeout(() => { setConnecting(null); setConnectedServices((prev) => new Set(prev).add(id)); }, 2000);
+  function saveAudioOutput(deviceId: string) {
+    setSelectedOutput(deviceId);
+    if (deviceId) localStorage.setItem("ng_audio_output_device", deviceId);
+    else localStorage.removeItem("ng_audio_output_device");
+    window.dispatchEvent(new CustomEvent("nightgram:audio-output-change", { detail: { deviceId } }));
   }
 
-  function connectVKToken() {
-    if (!vkToken.trim()) return;
-    setConnecting("vk");
-    // Save token to user profile via API
-    api.updateProfile({ glowEffect: `vk:${vkToken.trim().slice(0, 8)}` }).catch(() => {});
-    setConnectedServices((prev) => new Set(prev).add("vk"));
-    setVkConnected(true);
-    setVkToken("");
-    setConnecting(null);
-  }
-
-  function disconnect(id: string) {
-    setConnectedServices((prev) => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
+  async function refreshWithPermission() {
+    await navigator.mediaDevices?.getUserMedia({ audio: true })
+      .then((s) => { s.getTracks().forEach((t) => t.stop()); return navigator.mediaDevices.enumerateDevices(); })
+      .then((devices) => setAudioOutputs(devices.filter((d) => d.kind === "audiooutput")))
+      .catch(() => {});
   }
 
   return (
-    <div className="space-y-3">
-      <SectionTitleInline icon={Plug} title="Интеграции" desc="Подключи внешние сервисы" />
-
-      {integrations.map((it) => {
-        const isConnected = connectedServices.has(it.id);
-        return (
-          <div
-            key={it.id}
-            className="flex items-center gap-4 rounded-2xl glass-strong p-4 transition hover:brightness-110"
-          >
-            <div
-              className="h-12 w-12 rounded-xl grid place-items-center text-2xl shrink-0"
-              style={{ background: `${it.color}22` }}
-            >
-              {it.emoji}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="font-semibold text-sm flex items-center gap-2">
-                {it.name}
-                {isConnected && (
-                  <span className="rounded-full px-2 py-0.5 text-[9px] font-bold"
-                    style={{ background: "rgba(34,197,94,0.12)", color: "#4ade80" }}>
-                    Подключено
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-white/50 mt-0.5">{it.desc}</div>
-            </div>
-
-            {/* VK — token input */}
-            {it.type === "token" ? (
-              isConnected ? (
-                <button
-                  onClick={() => disconnect(it.id)}
-                  className="btn-ghost px-4 py-2.5 text-sm shrink-0"
-                >
-                  Отключить
-                </button>
-              ) : (
-                <div className="flex items-center gap-2 shrink-0">
-                  <input
-                    value={vkToken}
-                    onChange={(e) => setVkToken(e.target.value)}
-                    placeholder="Вставь токен"
-                    className="rounded-lg glass px-3 py-2 text-xs outline-none w-32 focus:border-neon-purple/40"
-                  />
-                  <button
-                    onClick={connectVKToken}
-                    disabled={connecting === "vk" || !vkToken.trim()}
-                    className="btn-glow px-4 py-2 text-sm shrink-0"
-                    style={{ background: `linear-gradient(135deg, ${it.color}, ${it.color}cc)` }}
-                  >
-                    {connecting === "vk" ? "…" : "ОК"}
-                  </button>
-                </div>
-              )
-            ) : (
-              <button
-                onClick={() => connectOAuth(it.id, it.href)}
-                disabled={connecting === it.id || isConnected}
-                className="btn-glow px-4 py-2.5 text-sm shrink-0"
-                style={isConnected ? { background: "rgba(34,197,94,0.15)" } : { background: `linear-gradient(135deg, ${it.color}, ${it.color}cc)` }}
-              >
-                {isConnected ? "✓" : connecting === it.id ? "Подключение…" : "Подключить"}
-              </button>
-            )}
-          </div>
-        );
-      })}
-
-      {/* VK token help */}
-      <div className="rounded-2xl glass p-3 text-xs text-white/40 flex items-center gap-2">
-        <Shield size={13} className="shrink-0" />
-        <span>OAuth-подключение для Discord/Spotify/SoundCloud. Для VK нужен токен доступа. Токены хранятся безопасно — мы не видим пароли.</span>
-      </div>
-
-      {/* VK token guide */}
-      <div className="rounded-2xl glass p-4">
-        <div className="text-xs font-semibold text-white/60 mb-2">Как получить токен VK:</div>
-        <ol className="text-[11px] text-white/40 space-y-1 list-decimal list-inside">
-          <li>Перейди на vkhost.github.io</li>
-          <li>Выбери «VK Music» или «Kate Mobile»</li>
-          <li>Нажми «Разрешить доступ»</li>
-          <li>Скопируй токен из адресной строки</li>
-          <li>Вставь его в поле выше</li>
-        </ol>
+    <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-4">
+      <SectionTitle icon={Volume2} title="Звук" desc="Устройство вывода для звонков и будущего плеера" />
+      <div className="rounded-3xl glass p-4">
+        <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+          <label className="text-xs text-white/55">
+            Устройство вывода
+            <CustomSelect
+              value={selectedOutput}
+              onChange={saveAudioOutput}
+              placeholder="По умолчанию"
+              className="mt-1"
+              options={[
+                { value: "", label: "По умолчанию", description: "Системный вывод браузера" },
+                ...audioOutputs.map((device) => ({
+                  value: device.deviceId,
+                  label: device.label || `Устройство ${device.deviceId.slice(0, 6)}`,
+                  description: device.deviceId ? `ID ${device.deviceId.slice(0, 10)}…` : undefined,
+                })),
+              ]}
+            />
+          </label>
+          <button type="button" onClick={refreshWithPermission} className="btn-ghost px-4 py-2.5 text-sm">Обновить</button>
+        </div>
+        <p className="mt-2 text-[11px] text-white/35">Если браузер не показывает названия устройств — нажми «Обновить» и разреши доступ к микрофону один раз.</p>
       </div>
     </div>
   );
 }
 
+// =============================================================================
+//  Integrations section
+// =============================================================================
+
+function IntegrationsSection() {
+  const [tutorial, setTutorial] = useState<"discord" | "spotify" | "soundcloud" | "vk" | null>(null);
+  const platforms = [
+    { id: "discord" as const, name: "Discord", emoji: "🎮", color: "#5865F2" },
+    { id: "spotify" as const, name: "Spotify", emoji: "🎵", color: "#1DB954" },
+    { id: "soundcloud" as const, name: "SoundCloud", emoji: "☁️", color: "#FF5500" },
+    { id: "vk" as const, name: "VK Музыка", emoji: "💙", color: "#0077FF" },
+  ];
+
+  const tutorialText: Record<string, string[]> = {
+    discord: [
+      "Discord-интеграция вернётся позже через официальный OAuth.",
+      "Пока можно вступить на сервер вручную и указать свой NightGram username.",
+      "Позже добавим автоматическую выдачу ролей и связку аккаунтов.",
+    ],
+    spotify: [
+      "Открой любимый альбом/плейлист в Spotify.",
+      "Скопируй названия треков и артистов в текстовый файл.",
+      "Формат одной строки: Artist - Title | direct-audio-url (если есть).",
+      "Если прямого audio URL нет — NightGram найдёт 30-секундное preview через iTunes, а полный трек можно слушать только через официальный источник.",
+    ],
+    soundcloud: [
+      "Открой трек/плейлист в SoundCloud.",
+      "Если трек разрешён автором для скачивания — используй официальный download/direct link.",
+      "Вставь строки в формате: Artist - Title | audio-url | cover-url.",
+      "Чужие закрытые треки без разрешения мы не вытаскиваем — это нарушение прав.",
+    ],
+    vk: [
+      "Открой список любимых треков в VK Музыке.",
+      "Собери названия в .txt: Artist - Title по одному треку на строку.",
+      "Загрузи/вставь список в будущий импорт любимых треков NightGram.",
+      "Полные аудио нужны из легального источника или твоего файла.",
+    ],
+  };
+
+  return (
+    <div className="space-y-3">
+      <SectionTitleInline icon={Plug} title="Музыкальные источники" desc="Интеграции Spotify/SoundCloud/VK появятся позже — пока доступен импорт списком" />
+      {platforms.map((p) => (
+        <div key={p.id} className="flex items-center gap-4 rounded-2xl glass-strong p-4 transition hover:brightness-110">
+          <div className="h-12 w-12 rounded-xl grid place-items-center text-2xl shrink-0" style={{ background: `${p.color}22` }}>{p.emoji}</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-sm flex items-center gap-2">
+              {p.name}
+              <span className="rounded-full px-2 py-0.5 text-[9px] font-bold" style={{ background: "rgba(251,191,36,0.12)", color: "#fbbf24" }}>СКОРО</span>
+            </div>
+            <div className="text-xs text-white/50 mt-0.5">Пока можно подготовить список любимых треков для импорта</div>
+          </div>
+          <button onClick={() => setTutorial(p.id)} className="btn-ghost px-4 py-2.5 text-sm shrink-0">Как получить треки?</button>
+        </div>
+      ))}
+
+      <div className="rounded-2xl glass p-4 text-xs text-white/45">
+        Формат для импорта: <b className="text-white/70">Artist - Title | audio-url | cover-url</b>. URL необязательны: если их нет, NightGram попробует найти preview.
+      </div>
+
+      <AnimatePresence>
+        {tutorial && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[10000] grid place-items-center overflow-y-auto p-4 py-6 sm:py-8">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setTutorial(null)} />
+            <motion.div initial={{ opacity: 0, y: 18, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 18, scale: 0.94 }} className="relative z-10 w-full max-w-md ng-solid rounded-4xl p-6 shadow-glow-lg max-h-[calc(100dvh-2rem)] overflow-y-auto">
+              <h3 className="font-display font-bold text-xl mb-3">Как подготовить треки</h3>
+              <ol className="space-y-2 text-sm text-white/65 list-decimal list-inside">
+                {tutorialText[tutorial].map((step) => <li key={step}>{step}</li>)}
+              </ol>
+              <button onClick={() => setTutorial(null)} className="btn-glow w-full py-3 mt-5 text-sm">Понял</button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
 // =============================================================================
 //  Moderation section (demo)
@@ -888,19 +1700,24 @@ function FieldBlock({ label, icon, children }: { label: string; icon?: React.Rea
 // =============================================================================
 
 function NameColorPicker({
+  nameColor,
   setNameColor,
   activeId,
   isPremium,
+  ownedStoreItems,
 }: {
   nameColor: string;
   setNameColor: (color: string, id: string) => void;
   activeId: string;
   isPremium: boolean;
+  ownedStoreItems: StoreItem[];
 }) {
   const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const activePreset = NAME_COLORS.find((preset) => activeId === preset.id || nameColor.toLowerCase() === preset.color.toLowerCase()) ?? NAME_COLORS[0];
 
   return (
-    <div>
+    <div className="relative">
       <span className="flex items-center gap-1.5 text-sm text-white/65 mb-2 ml-1">
         <Sparkles size={13} className="text-neon-purple" /> Цвет имени
         {!isPremium && (
@@ -914,50 +1731,65 @@ function NameColorPicker({
       </span>
 
       {isPremium ? (
-        /* Premium: full 15-color palette, clickable */
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
-          {NAME_COLORS.map((preset) => {
-            const active = activeId === preset.id;
-            return (
-              <button
-                key={preset.id}
-                onClick={() => setNameColor(preset.color, preset.id)}
-                className={cn(
-                  "relative aspect-square rounded-2xl overflow-hidden transition border-2 flex flex-col items-center justify-center gap-1 group",
-                  active ? "border-white scale-[1.05]" : "border-white/10 hover:border-white/30",
-                )}
-                style={{ background: `linear-gradient(135deg, ${preset.color}, ${preset.color}aa)` }}
-                title={preset.label}
+        <>
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="flex w-full items-center gap-3 rounded-2xl border px-4 py-3 text-left transition hover:brightness-110"
+            style={{ background: `linear-gradient(135deg, ${activePreset.color}42, rgba(7,3,18,0.98) 62%)`, borderColor: `${activePreset.color}88`, boxShadow: `0 0 18px ${activePreset.color}22` }}
+          >
+            <span className="grid h-9 w-9 place-items-center rounded-xl border border-white/15" style={{ background: activePreset.color, boxShadow: `0 0 14px ${activePreset.color}66` }}>
+              {activePreset.emoji}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold" style={{ color: activePreset.color }}>@username</span>
+              <span className="block text-xs text-white/40">{activePreset.label} · выбрать из готовых цветов</span>
+            </span>
+            <span className="text-xs text-white/35">{open ? "Свернуть" : "Выбрать"}</span>
+          </button>
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -8, scale: 0.98 }}
+                className="ng-select-scroll mt-2 mb-4 max-h-72 overflow-y-auto rounded-3xl border border-neon-purple/30 bg-[#090512] p-2 pr-3 shadow-[0_0_34px_rgba(168,85,247,0.28)]"
               >
-                <span
-                  className="h-6 w-6 rounded-full transition group-hover:scale-110"
-                  style={{ background: "#fff", boxShadow: active ? `0 0 14px ${preset.color}, 0 0 4px #fff` : `0 0 8px ${preset.color}` }}
-                >
-                  {active && (
-                    <span className="grid place-items-center h-full w-full" style={{ color: preset.color }}>
-                      <Check size={13} />
-                    </span>
-                  )}
-                </span>
-                <span className="text-[9px] text-white font-medium" style={{ textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}>
-                  {preset.label}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {NAME_COLORS.filter((preset) => !isMarketNameColorId(preset.id) || hasOwnedStoreEffect(ownedStoreItems, "name_color", preset.color)).map((preset) => {
+                    const active = activeId === preset.id || nameColor.toLowerCase() === preset.color.toLowerCase();
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => { setNameColor(preset.color, preset.id); setOpen(false); }}
+                        className={cn("flex items-center gap-2 rounded-2xl border px-2.5 py-2 text-left text-xs transition", active ? "text-white shadow-glow" : "border-white/10 bg-white/[0.035] text-white/62 hover:text-white hover:border-white/25")}
+                        style={active ? { background: `linear-gradient(135deg, ${preset.color}44, rgba(255,255,255,0.06))`, borderColor: `${preset.color}88` } : undefined}
+                      >
+                        <span className="grid h-7 w-7 place-items-center rounded-lg" style={{ background: preset.color, boxShadow: active ? `0 0 12px ${preset.color}` : undefined }}>
+                          {active ? <Check size={13} className="text-white drop-shadow" /> : preset.emoji}
+                        </span>
+                        <span className="min-w-0 truncate">{preset.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </>
       ) : (
-        /* Not premium: locked palette + upsell */
         <div className="rounded-2xl glass p-4 space-y-3">
           <div className="grid grid-cols-5 gap-2">
             {NAME_COLORS.slice(0, 10).map((preset) => (
               <div
                 key={preset.id}
-                className="relative aspect-square rounded-xl overflow-hidden opacity-40 grayscale"
+                className="relative aspect-square rounded-xl overflow-hidden"
                 style={{ background: preset.color }}
               >
+                <span className="absolute inset-0 bg-black/45" />
                 <span className="absolute inset-0 grid place-items-center">
-                  <Lock className="text-white/80" size={14} />
+                  <Lock className="text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]" size={15} />
                 </span>
               </div>
             ))}
@@ -965,11 +1797,9 @@ function NameColorPicker({
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <p className="text-sm text-white/70">
-                15 цветов ника доступны с <b style={{ color: "#fbbf24" }}>NightGram Premium</b>
+                {NAME_COLORS.length} цветов ника доступны с <b style={{ color: "#fbbf24" }}>NightGram Premium</b>
               </p>
-              <p className="text-xs text-white/40 mt-0.5">
-                Сейчас активен базовый цвет (бесплатный)
-              </p>
+              <p className="text-xs text-white/40 mt-0.5">На всех закрытых цветах теперь виден замок.</p>
             </div>
             <button
               onClick={() => router.push("/store")}

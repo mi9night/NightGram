@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 // =============================================================================
 //  NightGram Web — Notifications page (full list)
 // =============================================================================
@@ -10,6 +12,9 @@ import type { NotificationType } from "@/types";
 import { GlowAvatar } from "@/components/shared/GlowAvatar";
 import { useNotifications } from "@/context/NotificationsContext";
 import { timeAgo, cn } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { pushGlobalToast } from "@/lib/toast";
+import { useRouter } from "next/navigation";
 
 const ICONS: Record<NotificationType, typeof Heart> = {
   like: Heart,
@@ -33,6 +38,32 @@ const COLORS: Record<NotificationType, string> = {
 
 export default function NotificationsPage() {
   const { notifications, unreadCount, markAllRead, markRead } = useNotifications();
+  const router = useRouter();
+  const [actionedIds, setActionedIds] = useState<Set<string>>(new Set());
+
+  function notificationHref(n: { type: string; actorId?: string | null }) {
+    if (n.type === "follow" && n.actorId) return `/profile/${n.actorId}`;
+    if (n.type === "message") return "/messages";
+    if (n.type === "store") return "/store";
+    if (n.type === "like" || n.type === "comment" || n.type === "mention") return "/feed";
+    return "/notifications";
+  }
+
+  function openNotification(n: { id: string; type: string; actorId?: string | null }) {
+    markRead(n.id);
+    router.push(notificationHref(n));
+  }
+
+  async function followBack(actorId?: string | null, notificationId?: string) {
+    if (!actorId) return;
+    try {
+      const res = await api.socialAction("friend", actorId);
+      pushGlobalToast(res.friends ? "Вы теперь друзья" : "Вы подписались в ответ", "success");
+      if (notificationId) setActionedIds((prev) => new Set(prev).add(notificationId));
+    } catch {
+      pushGlobalToast("Не удалось добавить в ответ", "error");
+    }
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4">
@@ -77,7 +108,7 @@ export default function NotificationsPage() {
                 initial={{ opacity: 0, x: -15 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: Math.min(i * 0.04, 0.3) }}
-                onClick={() => markRead(n.id)}
+                onClick={() => openNotification(n)}
                 className={cn(
                   "ng-notif-card w-full flex items-center gap-3.5 rounded-2xl p-3.5 text-left",
                   !n.read && "is-unread",
@@ -98,6 +129,14 @@ export default function NotificationsPage() {
                     <span className="text-white/65">{n.body}</span>
                   </div>
                   <div className="text-[11px] text-white/35 mt-0.5">{timeAgo(n.createdAt)}</div>
+                  {n.actionType === "follow_back" && n.actorId && (
+                    <span
+                      onClick={(e) => { e.stopPropagation(); followBack(n.actorId, n.id); markRead(n.id); }}
+                      className="mt-2 inline-flex rounded-lg bg-neon-purple/15 px-2.5 py-1 text-[11px] font-semibold text-neon-purple hover:bg-neon-purple/25"
+                    >
+                      {actionedIds.has(n.id) ? "Готово" : "Добавить в ответ"}
+                    </span>
+                  )}
                 </div>
                 {!n.read && (
                   <span className="h-2.5 w-2.5 rounded-full bg-neon-purple shrink-0" style={{ boxShadow: "0 0 8px var(--accent-main)" }} />

@@ -12,6 +12,8 @@ import type { Post } from "@/types";
 import { PostCard } from "@/components/feed/PostCard";
 import { FeedSkeletons } from "@/components/feed/PostSkeleton";
 import { CreatePost } from "@/components/feed/CreatePost";
+import { StoriesBar } from "@/components/feed/StoriesBar";
+import { DiscoverySearch } from "@/components/feed/DiscoverySearch";
 import { api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 
@@ -69,6 +71,18 @@ export default function FeedPage() {
     return () => observer.disconnect();
   }, [loadMore]);
 
+  async function refreshAfterPost() {
+    try {
+      const data = await api.getFeed(undefined, PAGE_SIZE);
+      setPosts(data.posts);
+      setCursor(data.nextCursor);
+      setReachedEnd(data.nextCursor === null);
+      setError(false);
+    } catch {
+      // Keep the current feed visible if the refresh fails.
+    }
+  }
+
   return (
     <div className="max-w-2xl mx-auto px-4">
       <motion.div
@@ -87,8 +101,11 @@ export default function FeedPage() {
         </button>
       </motion.div>
 
+      <StoriesBar />
+      <div className="mt-4"><DiscoverySearch posts={posts} /></div>
+
       {/* Create post button — full width, visible */}
-      <CreatePost onPosted={() => window.location.reload()} />
+      <div className="mt-5"><CreatePost onPosted={refreshAfterPost} /></div>
 
       <div className="space-y-5 mt-5">
         {loading ? (
@@ -100,7 +117,7 @@ export default function FeedPage() {
         ) : (
           <AnimatePresence initial={false}>
             {posts.map((p, i) => (
-              <PostCard key={p.id} post={p} index={i} />
+              <PostCard key={p.id} post={p} index={i} onDeleted={(id) => setPosts((prev) => prev.filter((post) => post.id !== id))} />
             ))}
           </AnimatePresence>
         )}

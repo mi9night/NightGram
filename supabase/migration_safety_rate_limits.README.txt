@@ -1,0 +1,1 @@
+Apply supabase/migration_safety_rate_limits.sql after the base schema to enable Safety logs/admin panel.

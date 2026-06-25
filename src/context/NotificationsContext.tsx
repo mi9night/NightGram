@@ -3,7 +3,7 @@
 // =============================================================================
 //  NightGram Web — Notifications context
 //  Holds the notification list, unread count, mark-as-read, and a toast.
-//  Fetches real notifications from the API. Socket.io pushes new ones.
+//  Fetches real notifications from the API and listens for Socket.io pushes.
 // =============================================================================
 
 import {
@@ -17,6 +17,8 @@ import {
 } from "react";
 import type { AppNotification } from "@/types";
 import { api } from "@/lib/api";
+import { useAuth } from "./AuthContext";
+import { getSocket } from "@/lib/socket";
 
 interface NotificationsContextValue {
   notifications: AppNotification[];
@@ -30,39 +32,10 @@ interface NotificationsContextValue {
 const NotificationsContext = createContext<NotificationsContextValue | undefined>(undefined);
 
 export function NotificationsProvider({ children }: { children: ReactNode }) {
+  const { status } = useAuth();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [toast, setToast] = useState<AppNotification | null>(null);
 
-  // Fetch real notifications from the backend
-  useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("ng_access_token") : null;
-    if (!token) return;
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "";
-    fetch(`${apiUrl}/notifications`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(async (r) => {
-        if (!r.ok) return [];
-        const data = await r.json();
-        return Array.isArray(data) ? data : [];
-      })
-      .then((data: AppNotification[]) => {
-        if (Array.isArray(data)) setNotifications(data);
-      })
-      .catch(() => {});
-  }, []);
-
-  const markAllRead = useCallback(() => {
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    // Sync with backend (fire-and-forget)
-    api.viewPost("notifications-read-all").catch(() => {});
-  }, []);
-
-  const markRead = useCallback((id: string) => {
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
-  }, []);
-
-  // Allow external code (socket handlers) to push a new notification + toast
   const pushNotification = useCallback((n: AppNotification) => {
     setNotifications((prev) => {
       if (prev.some((x) => x.id === n.id)) return prev;
@@ -70,6 +43,48 @@ export function NotificationsProvider({ children }: { children: ReactNode }) {
     });
     setToast(n);
     setTimeout(() => setToast(null), 6000);
+  }, []);
+
+  // Fetch real notifications when auth is ready. The provider is mounted before
+  // auth hydration finishes, so doing this once on mount can miss the token.
+  useEffect(() => {
+    if (status !== "authenticated") {
+      setNotifications([]);
+      return;
+    }
+
+    let active = true;
+    api.getNotifications()
+      .then((data) => {
+        if (active) setNotifications(data);
+      })
+      .catch(() => {
+        if (active) setNotifications([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [status]);
+
+  // Realtime notifications from backend/admin broadcasts.
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    const socket = getSocket();
+    socket.on("notification:new", pushNotification);
+    return () => {
+      socket.off("notification:new", pushNotification);
+    };
+  }, [pushNotification, status]);
+
+  const markAllRead = useCallback(() => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    api.markAllNotificationsRead().catch(() => {});
+  }, []);
+
+  const markRead = useCallback((id: string) => {
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    api.markNotificationRead(id).catch(() => {});
   }, []);
 
   const unreadCount = useMemo(

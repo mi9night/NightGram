@@ -48,8 +48,12 @@ function LoginContent() {
       router.replace(next);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Ошибка входа";
-      if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
+      if (msg.includes("Сервер долго отвечает") || msg.includes("прерван") || msg.includes("aborted")) {
+        setError("Сервер долго отвечает. Railway мог уйти в сон — подожди 10–20 секунд и нажми войти ещё раз.");
+      } else if (msg.includes("Failed to fetch") || msg.includes("NetworkError")) {
         setError("Не удалось подключиться к серверу. Проверьте интернет или попробуйте позже.");
+      } else if (msg.includes("502") || msg.includes("Backend proxy failed")) {
+        setError("Vercel не смог связаться с backend. Проверь BACKEND_API_URL/NEXT_PUBLIC_API_URL и что Railway запущен.");
       } else if (msg.includes("401") || msg.includes("Invalid")) {
         setError("Неверный email или пароль.");
       } else {
@@ -84,24 +88,24 @@ function LoginContent() {
           )}
 
           <form onSubmit={onSubmit} className="space-y-4">
-            <Field icon={Mail} label="Email">
+            <Field icon={Mail} label="Email" active={Boolean(email)}>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@nightgram.app"
-                className="ng-input"
+                className="ng-input ng-input-with-icon"
               />
             </Field>
-            <Field icon={Lock} label="Пароль">
+            <Field icon={Lock} label="Пароль" active={Boolean(password)}>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="ng-input"
+                className="ng-input ng-input-with-icon"
               />
             </Field>
 
@@ -130,10 +134,13 @@ function LoginContent() {
           background: rgba(14, 10, 34, 0.6);
           border: 1px solid rgba(168, 85, 247, 0.2);
           border-radius: 14px;
-          padding: 12px 14px 12px 42px;
+          padding: 12px 14px;
           color: #fff;
           outline: none;
           transition: all 0.2s;
+        }
+        :global(.ng-input.ng-input-with-icon) {
+          padding-left: 56px !important;
         }
         :global(.ng-input:focus) {
           border-color: rgba(168, 85, 247, 0.6);
@@ -150,17 +157,27 @@ function LoginContent() {
 function Field({
   icon: Icon,
   label,
+  active = false,
   children,
 }: {
   icon: LucideIcon;
   label: string;
+  active?: boolean;
   children: React.ReactNode;
 }) {
+  const [focused, setFocused] = useState(false);
+  const hideIcon = active || focused;
   return (
     <label className="block">
       <span className="block text-xs text-white/60 mb-1.5 ml-1">{label}</span>
-      <div className="relative">
-        <Icon size={16} className="absolute left-3.5 top-3.5 text-white/40 pointer-events-none" />
+      <div
+        className={`relative ng-icon-field ${hideIcon ? "is-active" : ""}`}
+        onFocusCapture={() => setFocused(true)}
+        onBlurCapture={() => setFocused(false)}
+      >
+        <span className={`ng-field-icon pointer-events-none absolute inset-y-0 left-4 flex w-5 items-center justify-center text-white/40 ${hideIcon ? "opacity-0 scale-90" : ""}`}>
+          <Icon size={16} strokeWidth={1.9} />
+        </span>
         {children}
       </div>
     </label>

@@ -16,7 +16,7 @@ export function AuroraBackground({
 }) {
   return (
     <div
-      className={cn("pointer-events-none absolute inset-0 overflow-hidden", className)}
+      className={cn("pointer-events-none absolute inset-0 overflow-hidden opacity-40", className)}
       aria-hidden
     >
       <motion.div
@@ -25,8 +25,8 @@ export function AuroraBackground({
           width: 420 * intensity,
           height: 420 * intensity,
           background:
-            "radial-gradient(circle, rgba(168,85,247,0.45), transparent 70%)",
-          filter: "blur(60px)",
+            "radial-gradient(circle, rgba(168,85,247,0.22), transparent 72%)",
+          filter: "blur(82px)",
         }}
         animate={{ x: [0, 60, -20, 0], y: [0, 40, -30, 0], scale: [1, 1.15, 0.95, 1] }}
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
@@ -37,8 +37,8 @@ export function AuroraBackground({
           width: 380 * intensity,
           height: 380 * intensity,
           background:
-            "radial-gradient(circle, rgba(236,72,153,0.4), transparent 70%)",
-          filter: "blur(60px)",
+            "radial-gradient(circle, rgba(236,72,153,0.18), transparent 72%)",
+          filter: "blur(86px)",
         }}
         animate={{ x: [0, -50, 30, 0], y: [0, -40, 20, 0], scale: [1, 0.9, 1.2, 1] }}
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
@@ -49,8 +49,8 @@ export function AuroraBackground({
           width: 460 * intensity,
           height: 460 * intensity,
           background:
-            "radial-gradient(circle, rgba(99,102,241,0.4), transparent 70%)",
-          filter: "blur(70px)",
+            "radial-gradient(circle, rgba(99,102,241,0.18), transparent 74%)",
+          filter: "blur(92px)",
         }}
         animate={{ x: [0, 40, -40, 0], y: [0, -30, 30, 0], scale: [1, 1.1, 0.9, 1] }}
         transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}

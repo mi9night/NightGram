@@ -27,7 +27,10 @@ export default function LandingPage() {
   if (status === "loading") {
     return (
       <div className="min-h-screen grid place-items-center">
-        <div className="animate-pulse text-neon-purple">Загрузка NightGram…</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 rounded-full border-2 border-neon-purple/30 border-t-neon-purple animate-spin shadow-glow" />
+          <div className="animate-pulse text-neon-purple">Загрузка NightGram…</div>
+        </div>
       </div>
     );
   }

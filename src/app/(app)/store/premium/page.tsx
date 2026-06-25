@@ -4,14 +4,16 @@
 //  NightGram Web — Premium & NightCoins purchase page
 // =============================================================================
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Crown, Sparkles, TrendingDown, Check, Palette, Image, Zap, Star, Shield, Award, Gift } from "lucide-react";
+import { Crown, Sparkles, TrendingDown, Check, Palette, Image, Zap, Star, Shield, Award, Gift, Search, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { PaymentModal, type PaymentItem } from "@/components/store/PaymentModal";
 import { cn } from "@/lib/utils";
+import { api } from "@/lib/api";
+import { GlowAvatar } from "@/components/shared/GlowAvatar";
 
 // ---- Premium plans ----
 interface PremiumPlan { id: string; duration: string; price: number; perMonth: number; discount: number; months: number; fullPrice?: number; best?: boolean }
@@ -42,8 +44,8 @@ const BENEFITS: { icon: LucideIcon; title: string; desc: string; color: string }
   { icon: Palette, title: "Все темы", desc: "15 уникальных тем оформления — меняй внешний вид всего сайта под себя.", color: "#a855f7" },
   { icon: Image, title: "Анимированные рамки", desc: "Эксклюзивные анимированные рамки для твоего аватара в профиле и ленте.", color: "#ec4899" },
   { icon: Sparkles, title: "Glow-эффекты", desc: "Свечение ника, постов и профиля. Выделяйся среди других пользователей.", color: "#8b5cf6" },
-  { icon: Star, title: "15 цветов имени", desc: "Выбери любой цвет для своего ника — от фиолетового до золотого.", color: "#fbbf24" },
-  { icon: Zap, title: "2× NightCoins", desc: "Получай вдвое больше звёзд при каждой покупке в Night Store.", color: "#22d3ee" },
+  { icon: Star, title: "30 цветов имени", desc: "Выбирай из готовой премиальной палитры — от лунного белого до cyber-mint.", color: "#fbbf24" },
+  { icon: Zap, title: "2× NightCoins", desc: "Получай вдвое больше звёзд при каждой покупке в магазине.", color: "#22d3ee" },
   { icon: Crown, title: "Бейдж Premium", desc: "Особый значок короны рядом с твоим ником — все увидят твой статус.", color: "#f59e0b" },
   { icon: Shield, title: "Увеличенные файлы", desc: "Загружай файлы до 250 МБ вместо стандартных 50 МБ в постах и сообщениях.", color: "#10b981" },
   { icon: Gift, title: "Ранний доступ", desc: "Первым получай новые функции, темы и эксклюзивные дропы.", color: "#6366f1" },
@@ -64,17 +66,43 @@ function PremiumPageContent() {
   const [tab, setTab] = useState<"premium" | "coins">(initialTab);
   const [paymentItem, setPaymentItem] = useState<PaymentItem | null>(null);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [giftMode, setGiftMode] = useState<"self" | "friend">("self");
+  const [giftQuery, setGiftQuery] = useState("");
+  const [giftResults, setGiftResults] = useState<Record<string, unknown>[]>([]);
+  const [giftRecipient, setGiftRecipient] = useState<Record<string, unknown> | null>(null);
 
   const ngId = user ? String(user.ngId).padStart(8, "0") : "00000000";
   const displayId = user?.customId ? `@${user.customId}` : `#${ngId}`;
+  const giftTargetName = giftRecipient ? String(giftRecipient.username ?? "") : "";
+  const giftTargetId = giftRecipient ? String(giftRecipient.id ?? "") : undefined;
+  const giftTargetNgId = giftRecipient ? Number(giftRecipient.ngId ?? giftRecipient.ng_id ?? 0) : undefined;
+
+  useEffect(() => {
+    if (giftMode !== "friend" || giftQuery.trim().length < 2) {
+      setGiftResults([]);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      api.searchUsers(giftQuery.trim()).then((data) => setGiftResults(data as Record<string, unknown>[])).catch(() => setGiftResults([]));
+    }, 320);
+    return () => window.clearTimeout(timer);
+  }, [giftMode, giftQuery]);
+
+  function buildGiftFields() {
+    return giftMode === "friend" && giftTargetId
+      ? { giftRecipientId: giftTargetId, giftRecipientName: giftTargetName, giftRecipientNgId: giftTargetNgId }
+      : {};
+  }
 
   function buyPremium(plan: PremiumPlan) {
-    setPaymentItem({ title: `Premium — ${plan.duration}`, subtitle: "Подписка NightGram", price: plan.price, itemType: "premium" });
+    if (giftMode === "friend" && !giftTargetId) return;
+    setPaymentItem({ title: `Premium — ${plan.duration}`, subtitle: giftMode === "friend" ? "Подарок Premium" : "Подписка NightGram", price: plan.price, itemType: "premium", ...buildGiftFields() });
     setPaymentOpen(true);
   }
 
   function buyCoins(pack: CoinPack) {
-    setPaymentItem({ title: `${pack.coins} NightCoins`, subtitle: "Покупка звёзд", price: pack.price, itemType: "coins" });
+    if (giftMode === "friend" && !giftTargetId) return;
+    setPaymentItem({ title: `${pack.coins} NightCoins`, subtitle: giftMode === "friend" ? "Подарок NightCoins" : "Покупка звёзд", price: pack.price, itemType: "coins", ...buildGiftFields() });
     setPaymentOpen(true);
   }
 
@@ -97,6 +125,50 @@ function PremiumPageContent() {
       <div className="flex gap-2 mb-6 justify-center">
         <TabButton active={tab === "premium"} onClick={() => setTab("premium")} icon={Crown} label="Premium" />
         <TabButton active={tab === "coins"} onClick={() => setTab("coins")} icon={Sparkles} label="NightCoins" />
+      </div>
+
+      <div className="mb-6 rounded-3xl glass-strong p-4">
+        <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white/75">
+          <Gift size={16} className="text-neon-gold" /> Кому покупаем?
+        </div>
+        <div className="grid gap-3 md:grid-cols-[220px_1fr]">
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => { setGiftMode("self"); setGiftRecipient(null); }} className={giftMode === "self" ? "btn-glow py-2.5 text-sm" : "btn-ghost py-2.5 text-sm"}>Себе</button>
+            <button onClick={() => setGiftMode("friend")} className={giftMode === "friend" ? "btn-glow py-2.5 text-sm" : "btn-ghost py-2.5 text-sm"}>Другу</button>
+          </div>
+          {giftMode === "self" ? (
+            <div className="rounded-2xl glass px-3 py-2 text-sm text-white/60">Покупка будет активирована на твоём аккаунте {displayId}</div>
+          ) : (
+            <div className="relative">
+              {giftRecipient ? (
+                <div className="flex items-center gap-3 rounded-2xl glass px-3 py-2">
+                  <GlowAvatar src={(giftRecipient.avatarUrl as string) ?? (giftRecipient.avatar_url as string) ?? null} alt={giftTargetName} size={34} />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-white/80 truncate">@{giftTargetName}</div>
+                    <div className="text-[11px] text-white/35">#{String(giftTargetNgId || "").padStart(8, "0")}</div>
+                  </div>
+                  <button onClick={() => { setGiftRecipient(null); setGiftQuery(""); }} className="grid h-8 w-8 place-items-center rounded-xl glass text-white/45 hover:text-white"><X size={14} /></button>
+                </div>
+              ) : (
+                <>
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/35" />
+                  <input value={giftQuery} onChange={(e) => setGiftQuery(e.target.value)} placeholder="Найти пользователя для подарка…" className="ng-input py-2.5 pl-8 text-sm" />
+                  {giftResults.length > 0 && (
+                    <div className="ng-select-scroll absolute left-0 right-0 top-12 z-30 max-h-56 overflow-y-auto rounded-3xl border border-neon-purple/30 bg-[#090512] p-1.5 pr-3 shadow-[0_0_34px_rgba(168,85,247,0.28)]">
+                      {giftResults.map((u) => (
+                        <button key={String(u.id)} onClick={() => { setGiftRecipient(u); setGiftQuery(String(u.username ?? "")); setGiftResults([]); }} className="flex w-full items-center gap-2 rounded-2xl px-3 py-2 text-left text-sm text-white/70 hover:bg-white/8 hover:text-white">
+                          <GlowAvatar src={(u.avatarUrl as string) ?? (u.avatar_url as string) ?? null} alt={String(u.username ?? "")} size={28} />
+                          <span className="min-w-0 flex-1 truncate">@{String(u.username ?? "")}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+        {giftMode === "friend" && !giftRecipient && <div className="mt-2 text-[11px] text-amber-200/80">Выбери получателя, чтобы купить подарок.</div>}
       </div>
 
       {/* ===== PREMIUM ===== */}
@@ -163,10 +235,11 @@ function PremiumPageContent() {
 
                 <button
                   onClick={() => buyPremium(plan)}
-                  className="btn-glow w-full mt-4 py-2.5 text-sm"
+                  disabled={giftMode === "friend" && !giftRecipient}
+                  className="btn-glow w-full mt-4 py-2.5 text-sm disabled:opacity-45"
                   style={{ background: "linear-gradient(135deg,#fbbf24,#f59e0b)" }}
                 >
-                  Купить
+                  {giftMode === "friend" ? "Подарить" : "Купить"}
                 </button>
               </motion.div>
             ))}
@@ -218,7 +291,7 @@ function PremiumPageContent() {
           )}
 
           <p className="text-sm text-white/50 ml-1 mb-2">
-            NightCoins — внутренняя валюта для покупок в Night Store. Больше звёзд — выгоднее курс.
+            NightCoins — внутренняя валюта для покупок в магазине. Больше звёзд — выгоднее курс.
           </p>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -258,9 +331,10 @@ function PremiumPageContent() {
 
                 <button
                   onClick={() => buyCoins(pack)}
-                  className="btn-glow w-full mt-3 py-2 text-sm"
+                  disabled={giftMode === "friend" && !giftRecipient}
+                  className="btn-glow w-full mt-3 py-2 text-sm disabled:opacity-45"
                 >
-                  Купить
+                  {giftMode === "friend" ? "Подарить" : "Купить"}
                 </button>
               </motion.div>
             ))}

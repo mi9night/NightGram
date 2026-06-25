@@ -40,7 +40,7 @@ const features = [
   },
   {
     icon: ShoppingBag,
-    title: "Night Store",
+    title: "Магазин",
     desc: "Премиум-маркетплейс: темы, цветовые пакеты, рамки, glow-эффекты и бейджи. Покупай за NightCoins или напрямую.",
     tag: "Маркетплейс",
     color: "var(--accent-tertiary)",

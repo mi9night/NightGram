@@ -12,12 +12,9 @@ router.get("/", async (req, res) => {
       .order("created_at", { ascending: false })
       .limit(50);
 
-    if (error) {
-      // Table might not exist yet
-      return res.json([]);
-    }
+    if (error) return res.json([]);
     res.json(data || []);
-  } catch (e) {
+  } catch {
     res.json([]);
   }
 });
@@ -30,7 +27,23 @@ router.post("/read-all", async (req, res) => {
       .update({ read: true })
       .eq("user_id", req.userId)
       .eq("read", false);
-  } catch (e) { /* ignore */ }
+  } catch {
+    /* ignore missing table in early setups */
+  }
+  res.json({ ok: true });
+});
+
+// POST /api/notifications/:id/read — mark one notification as read
+router.post("/:id/read", async (req, res) => {
+  try {
+    await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("id", req.params.id)
+      .eq("user_id", req.userId);
+  } catch {
+    /* ignore missing table in early setups */
+  }
   res.json({ ok: true });
 });
 

@@ -15,7 +15,8 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status !== "authenticated") return;
     const socket = connectSocket();
-    // heartbeat / presence ping every 25s
+    // heartbeat / presence ping every 25s; first ping immediately fixes stale online after reload.
+    socket.emit("presence:ping");
     const interval = setInterval(() => socket.emit("presence:ping"), 25000);
     return () => {
       clearInterval(interval);

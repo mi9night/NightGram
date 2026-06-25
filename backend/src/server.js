@@ -27,24 +27,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: "50mb" }));
-
-// --- Root health check ---
-app.get("/", (_req, res) => {
-  res.json({
-    ok: true,
-    service: "nightgram",
-    version: "1.0.0",
-    ts: Date.now(),
-    supabase: !!process.env.SUPABASE_URL ? "configured" : "not-configured",
-  });
-});
-
-app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, service: "nightgram", ts: Date.now() });
-});
-
 // --- Stripe webhook ---
+// Must be registered BEFORE express.json(), because Stripe verifies the exact raw body.
 let stripeWebhookHandler = null;
 try {
   stripeWebhookHandler = require("./routes/stripe").stripeWebhook;
@@ -55,9 +39,42 @@ if (stripeWebhookHandler) {
   app.post("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhookHandler);
 }
 
+app.use(express.json({ limit: "50mb" }));
+
+// --- Root health check ---
+app.get("/", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "nightgram",
+    version: "1.0.0",
+    ts: Date.now(),
+    supabase: !!process.env.SUPABASE_URL ? "configured" : "not-configured",
+    jwt: process.env.JWT_SECRET && process.env.JWT_REFRESH_SECRET ? "configured" : "not-configured",
+  });
+});
+
+app.get("/api/health", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "nightgram",
+    ts: Date.now(),
+    supabase: !!process.env.SUPABASE_URL ? "configured" : "not-configured",
+    jwt: process.env.JWT_SECRET && process.env.JWT_REFRESH_SECRET ? "configured" : "not-configured",
+  });
+});
+
+
 // --- Auth routes (public) ---
 const { authRouter } = require("./routes/auth");
 app.use("/api/auth", authRouter);
+
+// --- Payment provider webhooks (public, protected by provider/shared secret) ---
+try {
+  app.use("/api/payments", require("./routes/payments"));
+  console.log("[NightGram] Payment webhook routes loaded ✓");
+} catch (e) {
+  console.error("[NightGram] Payment webhook routes FAILED:", e.message);
+}
 
 // --- Auth middleware ---
 const { authMiddleware } = require("./middleware/auth");
@@ -86,6 +103,20 @@ tryMount("/api/premium", authMiddleware, require("./routes/premium").premiumRout
 tryMount("/api/posts", authMiddleware, require("./routes/posts"), "Posts");
 tryMount("/api/admin", authMiddleware, require("./routes/admin"), "Admin");
 tryMount("/api/notifications", authMiddleware, require("./routes/notifications"), "Notifications");
+tryMount("/api/support", authMiddleware, require("./routes/support"), "Support");
+tryMount("/api/social", authMiddleware, require("./routes/social").socialRouter, "Social");
+tryMount("/api/channels", authMiddleware, require("./routes/channels").channelsRouter, "Channels");
+tryMount("/api/stories", authMiddleware, require("./routes/stories"), "Stories");
+
+// --- Safety scheduled cleanup (best-effort; safe on Railway single instance) ---
+try {
+  const { cleanupExpiredSafetyData } = require("./lib/safety");
+  setTimeout(() => cleanupExpiredSafetyData().catch(() => {}), 30_000);
+  setInterval(() => cleanupExpiredSafetyData().catch(() => {}), 60 * 60 * 1000);
+  console.log("[NightGram] Safety cleanup scheduled ✓");
+} catch (e) {
+  console.warn("[NightGram] Safety cleanup not scheduled:", e.message);
+}
 
 // --- Socket.io ---
 let io = null;
