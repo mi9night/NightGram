@@ -1,1 +1,37 @@
+name: NightGram Windows Build
 
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: Build Windows Installer
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Windows
+        run: |
+          npm run build
+        env:
+          CI: false
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: NightGram-Windows
+          path: release/
