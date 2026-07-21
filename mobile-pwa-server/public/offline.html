@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0814" />
+  <title>NightGram — нет сети</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#08060f;color:#fff}
+    body{min-height:100vh;margin:0;display:grid;place-items:center;padding:24px;background:radial-gradient(circle at top,#241142 0,#0b0814 48%,#05040a 100%)}
+    main{width:min(420px,100%);box-sizing:border-box;padding:28px;border:1px solid rgba(255,255,255,.12);border-radius:28px;background:rgba(14,10,24,.88);box-shadow:0 24px 80px rgba(0,0,0,.45);text-align:center}
+    .logo{width:64px;height:64px;margin:0 auto 18px;border-radius:20px;display:grid;place-items:center;background:linear-gradient(135deg,#8b5cf6,#d946ef);font-weight:800;font-size:28px;box-shadow:0 0 36px rgba(168,85,247,.42)}
+    h1{font-size:22px;margin:0 0 10px}p{color:rgba(255,255,255,.62);line-height:1.55;margin:0 0 20px}
+    button{border:0;border-radius:14px;padding:12px 18px;background:#8b5cf6;color:#fff;font-weight:700;cursor:pointer}
+    small{display:block;margin-top:16px;color:rgba(255,255,255,.38)}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="logo">N</div>
+    <h1>Нет подключения к сети</h1>
+    <p>NightGram сохранит открытое окно. После восстановления интернета сообщения и активный звонок попробуют подключиться снова.</p>
+    <button onclick="location.reload()">Повторить подключение</button>
+    <small id="state">Ожидаем интернет…</small>
+  </main>
+  <script>
+    addEventListener('online',()=>{document.getElementById('state').textContent='Сеть появилась, обновляем…';location.reload();});
+  </script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+globalThis.__RSC_MANIFEST=(globalThis.__RSC_MANIFEST||{});globalThis.__RSC_MANIFEST["/api/backend/[...path]/route"]={"moduleLoading":{"prefix":"/_next/"},"ssrModuleMapping":{},"edgeSSRModuleMapping":{},"clientModules":{},"entryCSSFiles":{"/mnt/data/NightGram-3.4.0/src/app/api/backend/[...path]/route":[]},"rscModuleMapping":{},"edgeRscModuleMapping":{}};

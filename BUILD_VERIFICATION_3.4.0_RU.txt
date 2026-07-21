@@ -1,0 +1,37 @@
+NightGram 3.4.0 — проверка сборки и нативных проектов
+Дата: 22 июля 2026
+
+ПРОВЕРЕНО УСПЕШНО
+- TypeScript: 0 диагностик.
+- Next.js 16.2.10 production build (webpack): успешно.
+- Standalone desktop runtime: подготовлен и запущен.
+- Standalone mobile/PWA runtime: подготовлен и запущен.
+- HTTP smoke-test mobile runtime: /, /calls, /manifest.json, /sw.js, /offline.html — HTTP 200.
+- HTTP smoke-test desktop runtime: / и /calls — HTTP 200.
+- Capacitor Android sync: 11 плагинов обнаружены и синхронизированы.
+- Capacitor iOS sync: 11 плагинов обнаружены через Swift Package Manager и синхронизированы.
+- Native mobile verification: 7/7.
+- Native push rules: успешно.
+- Звонки, TURN, ICE recovery и screen-sharing desktop verification: успешно.
+- Call reliability verification: 12 проверок.
+- Call status UI: 8/8.
+- Изменённые TS/TSX-файлы: ESLint без ошибок и предупреждений.
+- Накопленные тесты NightGram 2.11–3.4, выполненные в ходе разработки: успешно.
+
+ЧТО НЕ МОЖЕТ БЫТЬ СОБРАНО В ЭТОЙ LINUX-СРЕДЕ
+- Android APK/AAB: отсутствует Android SDK 36 и личный signing key/Firebase google-services.json.
+- iOS Archive/IPA: требуется macOS, Xcode 26, Apple Developer Team и личные APNs/provisioning данные.
+- Windows Setup.exe: electron-builder требует внешнюю загрузку Windows Electron runtime; готовые исходники и standalone runtime включены.
+
+ВАЖНЫЕ ОГРАНИЧЕНИЯ
+- Android/iOS приложения являются нативными гибридными приложениями Capacitor: store-пакет нативный, интерфейс загружается с опубликованного HTTPS frontend.
+- Камера, микрофон, FCM/APNs, PushKit/CallKit, deep links и фоновое состояние звонка интегрированы.
+- Нативная демонстрация экрана телефона через Android MediaProjection и iOS ReplayKit Broadcast Extension ещё не реализована. Desktop screen sharing остаётся рабочим; мобильный getDisplayMedia зависит от WebView/ОС и не гарантируется.
+- Реальные FCM/APNs/PushKit и звонки на заблокированном экране необходимо проверить с вашими ключами минимум на двух физических устройствах.
+
+ОБЯЗАТЕЛЬНО ПЕРЕД СБОРКОЙ
+1. Создать .env.native из .env.native.example и указать реальный HTTPS-домен.
+2. Выполнить supabase/migration_native_mobile_apps.sql.
+3. Развернуть backend 3.4.0.
+4. Настроить Firebase/FCM для Android и APNs/PushKit для iOS.
+5. Настроить TURN.

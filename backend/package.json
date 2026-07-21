@@ -1,0 +1,28 @@
+{
+  "name": "nightgram-backend",
+  "version": "3.4.0",
+  "description": "NightGram backend 3.4.0 — Web Push, Android FCM, iOS APNs/VoIP tokens and stable WebRTC signaling.",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "push:keys": "node scripts/generate-vapid-keys.cjs"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.110.7",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.7.5",
+    "stripe": "^16.2.0",
+    "web-push": "^3.6.7",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.4"
+  }
+}

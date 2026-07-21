@@ -1,0 +1,27 @@
+NightGram 3.4.0 — состав единого архива
+
+android/                     Android Studio / Gradle project
+  app/                       Native Android application
+  keystore.properties.example
+
+ios/                         Xcode / Swift project
+  App/App/AppDelegate.swift  PushKit + CallKit
+  App/App/PrivacyInfo.xcprivacy
+
+src/components/native/       Capacitor bridge
+backend/                     Railway backend with FCM/APNs/Web Push
+supabase/                    SQL migrations
+turn/                        TURN configuration
+mobile-pwa-server/           PWA standalone runtime
+desktop/                     Windows Electron source
+desktop-runtime/             Готовый standalone runtime 3.4.0 для Electron
+
+Главные инструкции:
+README_FIRST_RU.md
+MOBILE_NATIVE_BUILD_RU.md
+FIREBASE_ANDROID_SETUP_RU.md
+APPLE_IOS_SETUP_RU.md
+NATIVE_PUSH_BACKEND_RU.md
+STORE_RELEASE_CHECKLIST_RU.md
+
+BUILD_VERIFICATION_3.4.0_RU.txt

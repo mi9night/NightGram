@@ -1,0 +1,35 @@
+NightGram 2.24.0 — результат проверки
+
+УСПЕШНО:
+- npm run type-check: 0 ошибок TypeScript.
+- npm run lint: 0 ошибок, 28 существующих предупреждений.
+- npm run build: production build Next.js 16.2.10 завершён успешно.
+- npm run test:messages
+- npm run test:pins
+- npm run test:groups
+- npm run test:search
+- npm run test:scheduling
+- npm run test:organization
+- npm run test:polls-mentions
+- npm run test:channel-moderation
+- npm run test:auth-sessions
+- npm run test:privacy
+- npm run test:two-factor
+- npm run test:account-recovery
+- npm run test:notifications
+- npm run test:media-reliability
+- npm run test:desktop
+- npm run desktop:prepare
+
+WINDOWS INSTALLER:
+Конфигурация NSIS и desktop runtime проверены. Готовый Setup.exe в данной среде не создан: electron-builder получил сетевую ошибку DNS getaddrinfo EAI_AGAIN при скачивании Windows Electron с github.com.
+На машине с нормальным доступом к GitHub выполните BUILD_PC_INSTALLER.bat.
+
+МОБИЛЬНАЯ ВЕРСИЯ:
+Добавлена устанавливаемая PWA-версия. Нативного APK/AAB и Xcode-проекта в исходном архиве 2.23.0 не было; это предлагается следующим этапом 2.25.
+
+SUPABASE:
+Новая SQL-миграция для 2.24.0 не требуется.
+
+RAILWAY:
+Обязательно развернуть обновлённую папку backend, так как новый frontend использует POST /api/upload/binary.

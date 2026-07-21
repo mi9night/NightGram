@@ -1,0 +1,65 @@
+{
+  "name": "NightGram",
+  "short_name": "NightGram",
+  "description": "NightGram — мессенджер с чатами, каналами, push-уведомлениями и аудио/видеозвонками",
+  "id": "/",
+  "start_url": "/messages",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#03020a",
+  "theme_color": "#03020a",
+  "categories": [
+    "social",
+    "communication"
+  ],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Чаты",
+      "short_name": "Чаты",
+      "url": "/messages",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Звонки",
+      "short_name": "Звонки",
+      "url": "/calls",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Уведомления",
+      "short_name": "Уведомления",
+      "url": "/notifications",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

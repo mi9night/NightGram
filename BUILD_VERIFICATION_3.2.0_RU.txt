@@ -1,0 +1,42 @@
+NightGram 3.2.0 — результат проверки
+Дата проверки: 21 июля 2026
+
+Функциональность 3.2.0
+- Web Push для сообщений, отложенных сообщений и входящих звонков.
+- Push-подписки отдельно по устройствам.
+- Тихие часы с учётом часового пояса устройства.
+- Восстановление ещё активного входящего звонка после открытия PWA.
+- История входящих, исходящих, пропущенных, отклонённых и завершённых звонков.
+- Страница /calls и повторный аудио/видеовызов.
+- Исправлено получение TURN credentials по req.userId.
+
+Проверки
+- TypeScript: 0 ошибок.
+- ESLint: 0 ошибок, 28 накопленных предупреждений.
+- Next.js 16.2.10 production build: успешно.
+- Маршрут /calls присутствует в production build.
+- Desktop standalone runtime: успешно подготовлен и проверен.
+- Mobile standalone runtime: успешно пересобран.
+- HTTP smoke-test mobile-pwa-server /calls и /manifest.json: успешно.
+- Backend JS syntax: успешно.
+- Генерация VAPID-ключей: успешно.
+- Все накопленные тесты 2.11–3.2: успешно.
+- Web Push и call-history проверки: успешно.
+
+Windows Setup.exe
+- Конфигурация electron-builder/NSIS и desktop runtime проверены.
+- Готовый Setup.exe не создан в этой Linux-среде: electron-builder не смог загрузить Electron 43.1.1 с github.com из-за DNS EAI_AGAIN.
+- На Windows после распаковки запустите BUILD_PC_INSTALLER.bat.
+- Ожидаемый файл: release\NightGram-Setup-3.2.0-x64.exe.
+
+Обязательное развёртывание
+1. Выполнить supabase/migration_call_history_web_push.sql.
+2. Развернуть папку backend на Railway.
+3. В backend выполнить npm run push:keys.
+4. Добавить WEB_PUSH_PUBLIC_KEY, WEB_PUSH_PRIVATE_KEY и WEB_PUSH_SUBJECT в Railway.
+5. Сохранить TURN-настройки и добавить HTTPS frontend в CLIENT_ORIGINS.
+
+Ограничения проверки
+- Реальная доставка Web Push зависит от HTTPS, браузера, разрешения пользователя и push-службы ОС.
+- Реальные медиазвонки нужно проверить на физических Windows, Android и iPhone устройствах с настроенным TURN.
+- На iPhone Web Push требует установленную PWA и поддерживаемую версию iOS/iPadOS.

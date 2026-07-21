@@ -1,0 +1,18 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["REPLACE_TEAM_ID.app.nightgram.mobile"],
+        "components": [
+          { "/": "/messages/*", "comment": "NightGram chats" },
+          { "/": "/calls/*", "comment": "NightGram calls" },
+          { "/": "/profile/*", "comment": "NightGram profiles" },
+          { "/": "/*", "comment": "All NightGram routes" }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["REPLACE_TEAM_ID.app.nightgram.mobile"]
+  }
+}

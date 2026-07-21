@@ -1,0 +1,37 @@
+NightGram 3.0.0 — результат проверки
+=====================================
+
+Успешно:
+- TypeScript: 0 диагностик.
+- ESLint: 0 ошибок, 28 накопленных предупреждений старого кода.
+- Next.js 16.2.10 production build: успешно.
+- Desktop standalone runtime: подготовлен и проверен.
+- Backend JavaScript syntax: успешно.
+- TURN short-lived credentials: HMAC-SHA1 тест успешно.
+- WebRTC/ICE/screen-sharing static integration test: успешно.
+- Все накопленные тесты сообщений, закреплений, групп, поиска, отложенных сообщений,
+  папок, опросов, каналов, сессий, приватности, 2FA, восстановления аккаунта,
+  уведомлений и надёжных медиа: успешно.
+
+Добавлено в 3.0.0:
+- runtime ICE config через backend;
+- краткоживущие TURN credentials;
+- отдельные ICE-буферы по звонку/пользователю;
+- раннее сохранение ICE candidates;
+- ICE restart;
+- безопасное renegotiation;
+- Windows source picker и Electron display-media handler;
+- восстановление камеры после screen sharing;
+- мобильная PWA install-подсказка;
+- готовый standalone mobile PWA server;
+- шаблон coturn.
+
+Ограничение проверки:
+- настоящий звонок между двумя физическими устройствами и внешний TURN невозможно
+  полностью проверить без двух аккаунтов, камер/микрофонов и публичного TURN/VPS.
+- electron-builder не сформировал Setup.exe в текущей среде, потому что загрузка
+  Windows Electron с github.com завершилась DNS-ошибкой EAI_AGAIN.
+- конфигурация desktop, NSIS и standalone runtime проверены локально.
+
+Новая Supabase-миграция не требуется.
+Backend 3.0.0 необходимо повторно развернуть на Railway.

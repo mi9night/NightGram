@@ -1,0 +1,14 @@
+NightGram 1.1.1 — исправление подключения
+
+Исправлено:
+- удалён старый Railway URL без суффикса -e0d2;
+- API-запросы desktop-клиента идут через встроенный локальный Next.js proxy;
+- устранена зависимость входа от CORS между localhost/Electron и Railway;
+- правильный backend передаётся локальному desktop-серверу при каждом запуске;
+- перед сборкой автоматически удаляются .next, desktop-runtime и release.
+
+Backend по умолчанию:
+https://nightgram-production-0ceb.up.railway.app/api
+
+Для сборки нового Setup.exe запустите BUILD_PC_INSTALLER.bat.
+Старый установленный NightGram нужно удалить или установить новую версию поверх него.

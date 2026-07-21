@@ -1,0 +1,44 @@
+NightGram 3.3.0 — результат проверки
+Дата проверки: 21 июля 2026
+
+Функциональность 3.3.0
+- Восстановление активного звонка после быстрой перезагрузки.
+- Восстановление после offline/online и повторный ICE restart.
+- WebRTC getStats: RTT, packet loss, jitter, outgoing bitrate.
+- Индикатор качества для каждого участника и звонка в целом.
+- Автоматическое ограничение bitrate/FPS/resolution при слабой сети.
+- Backend-защита already_in_call и participant_busy.
+- Исключение занятых пользователей из группового приглашения.
+- Настраиваемый CALL_RING_TIMEOUT_SECONDS.
+- Push-действия Ответить/Отклонить.
+- PWA offline fallback.
+
+Проверки
+- TypeScript: 0 ошибок.
+- ESLint: 0 ошибок, 28 накопленных предупреждений; в изменённых файлах новых предупреждений нет.
+- Next.js 16.2.10 production build: успешно.
+- Desktop standalone runtime: успешно подготовлен и проверен.
+- Mobile standalone runtime: успешно подготовлен.
+- HTTP smoke-test: /, /calls, /manifest.json, /sw.js и /offline.html — успешно.
+- Backend JavaScript syntax: успешно.
+- Все накопленные тесты NightGram 2.11–3.3: успешно.
+- Отдельные тесты call admission и busy-user protection: успешно.
+
+База и backend
+- Новая SQL-миграция для 3.3.0 не требуется.
+- Если migration_call_history_web_push.sql ещё не выполнялась, её необходимо применить.
+- Папку backend нужно заново развернуть на Railway.
+- Необязательная переменная: CALL_RING_TIMEOUT_SECONDS=60.
+
+Windows Setup.exe
+- Desktop runtime и конфигурация NSIS готовы.
+- Установщик собирается командой BUILD_PC_INSTALLER.bat.
+- Ожидаемый файл: release\NightGram-Setup-3.3.0-x64.exe.
+- Попытка сборки в текущей Linux-среде дошла до упаковки win32 x64, но electron-builder не смог загрузить Electron 43.1.1 с github.com: getaddrinfo EAI_AGAIN.
+- На Windows с доступом к GitHub запустите BUILD_PC_INSTALLER.bat.
+
+Ограничения проверки
+- Реальные звонки необходимо проверить на физических Windows, Android и iPhone устройствах.
+- Для сложных сетей нужен доступный TURN.
+- Action-кнопки Web Push отображаются не всеми браузерами и ОС.
+- При нескольких экземплярах backend активные call rooms пока не разделяются между процессами.

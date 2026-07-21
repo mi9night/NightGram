@@ -1,0 +1,24 @@
+NightGram 2.10.2 — исправление npm EUSAGE
+
+Причина:
+Некоторые новые версии npm отклоняют package-lock.json, созданный на другой ОС,
+если в нём отсутствуют платформенные optional-пакеты (fsevents, @unrs/* и др.).
+Это не ошибка кода NightGram.
+
+В этой версии:
+- исходный несовместимый package-lock.json не включён в архив;
+- INSTALL_DEPENDENCIES.bat использует npm install --include=optional;
+- lock-файл создаётся заново под текущую Windows и установленную версию npm;
+- при неудаче выполняется безопасная очистка node_modules и lock-файла;
+- добавлен REPAIR_NPM_INSTALL.bat для автоматического восстановления.
+
+Обычная сборка:
+1. Запустите BUILD_PC_INSTALLER.bat.
+2. Дождитесь установки зависимостей и сборки.
+
+Если вы распаковали старую версию 2.10.0:
+1. Закройте редактор и процессы Node.js.
+2. Удалите node_modules и package-lock.json.
+3. Выполните:
+   npm install --include=optional --registry=https://registry.npmjs.org/
+4. Затем запустите BUILD_PC_INSTALLER.bat.

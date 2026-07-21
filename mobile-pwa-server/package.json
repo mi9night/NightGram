@@ -1,0 +1,160 @@
+{
+  "name": "nightgram-web",
+  "version": "3.4.0",
+  "private": true,
+  "description": "NightGram 3.4.0 for Web, Windows, Android and iOS — native Capacitor apps, FCM/APNs push, deep links and mobile device integration.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "next start",
+    "lint": "node scripts/lint.mjs",
+    "type-check": "node scripts/type-check.mjs",
+    "desktop:prepare": "node scripts/prepare-desktop.mjs && node scripts/verify-desktop-runtime.mjs",
+    "desktop:run": "electron .",
+    "desktop:build": "npm run build && npm run desktop:prepare",
+    "dist:win": "npm run desktop:build && electron-builder --win nsis",
+    "dist:dir": "npm run desktop:build && electron-builder --dir",
+    "test:desktop": "node scripts/test-installer-preferences.mjs && node scripts/test-cache-maintenance.mjs && node scripts/verify-installer-config.mjs",
+    "test:connection": "node scripts/verify-connection-recovery.mjs",
+    "test:health": "node scripts/test-server-health.mjs",
+    "test:messages": "node scripts/verify-message-actions-media.mjs",
+    "test:pins": "node scripts/verify-pinned-messages.mjs",
+    "test:groups": "node scripts/verify-group-management.mjs",
+    "test:search": "node scripts/verify-global-search.mjs && node scripts/test-global-search-route.cjs",
+    "test:scheduling": "node scripts/verify-drafts-scheduling.mjs && node scripts/test-scheduled-worker.cjs",
+    "test:organization": "node scripts/verify-chat-organization.mjs",
+    "test:polls-mentions": "node scripts/verify-polls-mentions.mjs && node scripts/test-polls-mentions.cjs",
+    "test:channel-moderation": "node scripts/verify-channel-moderation.mjs",
+    "test:auth-sessions": "node scripts/verify-auth-sessions.mjs && node scripts/test-auth-sessions.cjs",
+    "test:privacy": "node scripts/verify-privacy-safety.mjs && node scripts/test-privacy-rules.cjs",
+    "test:two-factor": "node scripts/verify-two-factor-auth.mjs && node scripts/test-two-factor-utils.cjs",
+    "test:account-recovery": "node scripts/verify-account-recovery.mjs",
+    "test:notifications": "node scripts/verify-notification-preferences.mjs && node scripts/test-notification-preferences.cjs",
+    "test:media-reliability": "node scripts/verify-media-reliability.mjs",
+    "dev:mobile": "next dev --hostname 0.0.0.0",
+    "dev:mobile:https": "next dev --hostname 0.0.0.0 --experimental-https",
+    "test:calls": "node scripts/verify-calls-screen-sharing.mjs && node scripts/verify-group-calls-mobile.mjs && node scripts/test-call-room-state.cjs && node scripts/test-call-ice-config.cjs",
+    "test:group-calls": "node scripts/verify-group-calls-mobile.mjs",
+    "test:push-calls": "node scripts/verify-push-call-history.mjs && node scripts/test-web-push-rules.cjs",
+    "test:call-reliability": "node scripts/verify-call-reliability.mjs && node scripts/test-call-admission.cjs",
+    "mobile:prepare": "node scripts/prepare-mobile-pwa.mjs",
+    "test:call-ui": "node scripts/verify-call-status-ui.mjs",
+    "native:configure": "node scripts/configure-native.mjs",
+    "native:sync": "node scripts/configure-native.mjs && cap sync",
+    "native:android": "node scripts/configure-native.mjs && cap sync android && cap open android",
+    "native:ios": "node scripts/configure-native.mjs && cap sync ios && cap open ios",
+    "native:android:build": "node scripts/configure-native.mjs && cap sync android && cd android && ./gradlew assembleDebug",
+    "test:native": "node scripts/verify-native-mobile.mjs && node backend/src/lib/native-push.test.cjs"
+  },
+  "dependencies": {
+    "@stripe/stripe-js": "4.1.0",
+    "@supabase/supabase-js": "2.110.7",
+    "clsx": "2.1.1",
+    "framer-motion": "12.42.2",
+    "jwt-decode": "4.0.0",
+    "lucide-react": "0.414.0",
+    "next": "16.2.10",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "socket.io-client": "4.8.3",
+    "tailwind-merge": "2.4.0",
+    "zustand": "5.0.14",
+    "qrcode": "1.5.4",
+    "@capacitor/app": "8.1.1",
+    "@capacitor/browser": "8.0.0",
+    "@capacitor/core": "8.4.2",
+    "@capacitor/device": "8.0.0",
+    "@capacitor/haptics": "8.0.0",
+    "@capacitor/keyboard": "8.0.0",
+    "@capacitor/network": "8.0.0",
+    "@capacitor/preferences": "8.0.0",
+    "@capacitor/push-notifications": "8.1.2",
+    "@capacitor/share": "8.0.0",
+    "@capacitor/splash-screen": "8.0.0",
+    "@capacitor/status-bar": "8.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "@types/react": "19.2.17",
+    "@types/react-dom": "19.2.3",
+    "autoprefixer": "10.4.19",
+    "electron": "43.1.1",
+    "electron-builder": "26.15.3",
+    "eslint": "9.39.2",
+    "eslint-config-next": "16.2.10",
+    "postcss": "8.5.10",
+    "tailwindcss": "3.4.6",
+    "typescript": "5.9.3",
+    "@types/qrcode": "1.5.5",
+    "@capacitor/android": "8.4.2",
+    "@capacitor/cli": "8.4.2",
+    "@capacitor/ios": "8.4.2"
+  },
+  "main": "desktop/main.cjs",
+  "build": {
+    "appId": "app.nightgram.desktop",
+    "productName": "NightGram",
+    "asar": true,
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "desktop/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "desktop-runtime/app",
+        "to": "app",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "artifactName": "NightGram-Setup-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "NightGram",
+      "uninstallDisplayName": "NightGram",
+      "runAfterFinish": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico",
+      "deleteAppDataOnUninstall": false,
+      "include": "build/installer.nsh"
+    },
+    "afterPack": "scripts/after-pack.cjs"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "overrides": {
+    "postcss": "8.5.10"
+  },
+  "author": "NightGram",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mi9night/NightGram.git"
+  }
+}

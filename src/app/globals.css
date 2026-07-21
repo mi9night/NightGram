@@ -1,0 +1,489 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   NightGram Web — Global theme (driven by AppearanceContext CSS variables)
+   Two axes: THEME (bg + surfaces + text) · ACCENT (buttons, glow, gradients)
+   ========================================================================== */
+
+:root {
+  --font-sans: "Segoe UI Variable", "Segoe UI", Inter, system-ui, -apple-system, sans-serif;
+  --font-display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", Inter, system-ui, sans-serif;
+
+  /* Defaults — overridden live by AppearanceContext */
+  --bg-color: #03020a;
+  --bg-image: radial-gradient(circle at 15% 18%, rgba(139,92,246,0.28), transparent 42%), radial-gradient(circle at 85% 12%, rgba(236,72,153,0.18), transparent 40%), radial-gradient(circle at 50% 95%, rgba(99,102,241,0.22), transparent 48%);
+  --glass-r: 30; --glass-g: 23; --glass-b: 64;
+  --glass-opacity: 0.45;
+  --c-text: #e8e6f5;
+  --c-text-muted: rgba(232,230,245,0.55);
+  --accent-main: #a855f7;
+  --accent-main-rgb: 168 85 247;
+  --accent-secondary: #8b5cf6;
+  --accent-secondary-rgb: 139 92 246;
+  --accent-tertiary: #ec4899;
+  --accent-tertiary-rgb: 236 72 153;
+  --accent-pink: #ec4899;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  padding: 0;
+  margin: 0;
+  color: var(--c-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+html {
+  background-color: var(--bg-color);
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  background-image: var(--bg-image);
+  background-attachment: scroll;
+}
+
+/* Subtle dotted texture overlay */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.4;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent-main) 35%, transparent);
+  color: #fff;
+}
+
+/* ---- Scrollbar ---- */
+::-webkit-scrollbar { width: 9px; height: 9px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6a5da4, #2e2354);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--accent-main), #6a5da4);
+  background-clip: padding-box;
+}
+
+/* ==========================================================================
+   Component utilities
+   ========================================================================== */
+@layer components {
+  /* Glass surfaces use the theme's RGB tint + opacity */
+  .glass {
+    background: rgba(var(--glass-r), var(--glass-g), var(--glass-b), var(--glass-opacity));
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid color-mix(in srgb, var(--accent-main) 18%, transparent);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .glass-strong {
+    background: rgba(var(--glass-r), var(--glass-g), var(--glass-b), calc(var(--glass-opacity) + 0.2));
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    border: 1px solid color-mix(in srgb, var(--accent-main) 25%, transparent);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  .btn-glow {
+    position: relative;
+    isolation: isolate;
+    overflow: visible !important;
+    background: linear-gradient(135deg, var(--accent-main), var(--accent-secondary) 55%, var(--accent-main));
+    color: #fff;
+    font-weight: 600;
+    border-radius: 16px;
+    box-shadow: 0 0 16px rgb(var(--accent-main-rgb) / 0.45),
+      0 0 32px rgb(var(--accent-secondary-rgb) / 0.22);
+    filter: drop-shadow(0 0 10px rgb(var(--accent-main-rgb) / 0.22));
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease, filter 0.25s ease;
+  }
+  .btn-glow::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: inherit;
+    filter: blur(10px);
+    opacity: 0.34;
+    transition: opacity 0.25s ease, filter 0.25s ease;
+  }
+  .btn-glow:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 0 30px color-mix(in srgb, var(--accent-main) 70%, transparent),
+      0 0 60px color-mix(in srgb, var(--accent-secondary) 40%, transparent);
+    filter: brightness(1.08) drop-shadow(0 0 14px rgb(var(--accent-main-rgb) / 0.34));
+  }
+  .btn-glow:hover::before { opacity: 0.5; filter: blur(12px); }
+  .btn-glow:active { transform: translateY(0) scale(0.99); }
+
+  .btn-ghost {
+    background: color-mix(in srgb, var(--accent-main) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent-main) 25%, transparent);
+    color: var(--c-text-muted);
+    border-radius: 16px;
+    transition: all 0.25s ease;
+  }
+  .btn-ghost:hover {
+    background: color-mix(in srgb, var(--accent-main) 16%, transparent);
+    border-color: color-mix(in srgb, var(--accent-main) 45%, transparent);
+    color: var(--c-text);
+  }
+
+  .text-gradient {
+    background: linear-gradient(120deg, color-mix(in srgb, var(--accent-main) 60%, white) 0%, var(--accent-main) 40%, var(--accent-pink) 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(120deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+  }
+
+  .gradient-border {
+    position: relative;
+    border-radius: 24px;
+    background: rgba(var(--glass-r), var(--glass-g), var(--glass-b), var(--glass-opacity));
+  }
+  .gradient-border::before {
+    content: "";
+    position: absolute; inset: 0; border-radius: inherit; padding: 1px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--accent-main) 60%, transparent), color-mix(in srgb, var(--accent-pink) 30%, transparent), color-mix(in srgb, var(--accent-secondary) 50%, transparent));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, rgba(46,35,84,0.4) 25%, rgba(74,58,127,0.6) 37%, rgba(46,35,84,0.4) 63%);
+    background-size: 1000px 100%;
+    animation: shimmer 2s linear infinite;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--accent-main-rgb) / 0.45) transparent;
+  }
+  .scrollbar-hide::-webkit-scrollbar { display: block; height: 6px; width: 6px; }
+  .scrollbar-hide::-webkit-scrollbar-thumb { background: rgb(var(--accent-main-rgb) / 0.35); border-radius: 999px; border: 0; }
+  .scrollbar-hide::-webkit-scrollbar-track { background: transparent; }
+
+  /* Solid surface — opaque, reacts to the selected THEME */
+  .ng-solid {
+    background: rgb(var(--glass-r) var(--glass-g) var(--glass-b));
+    border: 1px solid rgb(var(--accent-main-rgb) / 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Divider — accent-derived color, works with border-b AND border-t */
+  .ng-divider {
+    border-color: rgb(var(--accent-main-rgb) / 0.14) !important;
+  }
+
+  /* Notification items inside a dropdown (transparent, hover accent-reactive) */
+  .ng-notif-item {
+    background: transparent;
+    transition: background 0.15s ease;
+  }
+  .ng-notif-item:hover {
+    background: rgb(var(--accent-main-rgb) / 0.12);
+  }
+  .ng-notif-item.is-unread {
+    background: rgb(var(--accent-main-rgb) / 0.07);
+  }
+  .ng-notif-item.is-unread:hover {
+    background: rgb(var(--accent-main-rgb) / 0.15);
+  }
+
+  /* Notification cards on the page — SOLID (opaque), theme + accent reactive */
+  .ng-notif-card {
+    background: rgb(var(--glass-r) var(--glass-g) var(--glass-b));
+    border: 1px solid rgb(var(--accent-main-rgb) / 0.2);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  .ng-notif-card:hover {
+    border-color: rgb(var(--accent-main-rgb) / 0.5);
+    box-shadow: 0 0 18px rgb(var(--accent-main-rgb) / 0.15);
+  }
+  .ng-notif-card.is-unread {
+    border-color: rgb(var(--accent-main-rgb) / 0.4);
+    box-shadow: 0 0 14px rgb(var(--accent-main-rgb) / 0.1);
+  }
+}
+
+/* ---- Reduced motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+html.ng-reduced-motion *, html.ng-reduced-motion *::before, html.ng-reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
+/* ==========================================================================
+   LIGHT THEME — override the common text utilities so white text stays
+   readable on light surfaces. Scoped to html.ng-light.
+   ========================================================================== */
+html.ng-light body::before { opacity: 0.25; }
+html.ng-light ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #c7c9e0, #9ea1bf);
+}
+html.ng-light .text-white\/40 { color: rgba(26,21,48,0.45) !important; }
+html.ng-light .text-white\/45 { color: rgba(26,21,48,0.5) !important; }
+html.ng-light .text-white\/50 { color: rgba(26,21,48,0.55) !important; }
+html.ng-light .text-white\/55 { color: rgba(26,21,48,0.6) !important; }
+html.ng-light .text-white\/60 { color: rgba(26,21,48,0.62) !important; }
+html.ng-light .text-white\/65 { color: rgba(26,21,48,0.65) !important; }
+html.ng-light .text-white\/70 { color: rgba(26,21,48,0.7) !important; }
+html.ng-light .text-white\/80 { color: rgba(26,21,48,0.8) !important; }
+html.ng-light .text-white\/85 { color: rgba(26,21,48,0.85) !important; }
+html.ng-light .text-white\/90 { color: rgba(26,21,48,0.9) !important; }
+html.ng-light .text-white { color: #1a1530 !important; }
+html.ng-light .border-white\/5 { border-color: rgba(26,21,48,0.1) !important; }
+html.ng-light .bg-midnight-900,
+html.ng-light .bg-midnight-950,
+html.ng-light .bg-midnight-800,
+html.ng-light .bg-midnight-700 { background-color: rgba(255,255,255,0.5) !important; }
+
+/* Global form input used by settings/security/admin. Kept outside per-tab JSX so
+   inputs do not fall back to ugly browser defaults when a specific settings tab
+   unmounts its local styles. */
+.ng-input {
+  width: 100%;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.055) !important;
+  border: 1px solid rgb(var(--accent-main-rgb) / 0.22) !important;
+  border-radius: 20px !important;
+  padding: 14px 16px !important;
+  color: var(--c-text) !important;
+  outline: none !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 rgba(0,0,0,0) !important;
+}
+.ng-input:focus {
+  border-color: rgb(var(--accent-main-rgb) / 0.6) !important;
+  box-shadow: 0 0 0 3px rgb(var(--accent-main-rgb) / 0.15), 0 0 18px rgb(var(--accent-main-rgb) / 0.12) !important;
+}
+.ng-input::placeholder { color: rgba(255,255,255,0.35) !important; }
+.ng-input:disabled { opacity: 0.6; cursor: not-allowed; }
+.ng-combo-input {
+  width: 100%;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgb(var(--accent-main-rgb) / 0.22);
+  border-radius: 20px;
+  padding: 0 16px;
+  color: var(--c-text);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, gap 0.16s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 0 0 rgba(0,0,0,0);
+}
+.ng-combo-input:focus-within {
+  border-color: rgb(var(--accent-main-rgb) / 0.6);
+  box-shadow: 0 0 0 3px rgb(var(--accent-main-rgb) / 0.15), 0 0 18px rgb(var(--accent-main-rgb) / 0.12);
+}
+.ng-combo-prefix {
+  display: inline-grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgb(var(--accent-main-rgb) / 0.22);
+  background: rgb(var(--accent-main-rgb) / 0.09);
+  color: rgba(255,255,255,0.72);
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 12px rgb(var(--accent-main-rgb) / 0.10);
+  transition: opacity 0.16s ease, transform 0.16s ease, width 0.16s ease, flex-basis 0.16s ease, margin 0.16s ease;
+}
+.ng-combo-input.is-active { gap: 0; }
+.ng-combo-input.is-active .ng-combo-prefix {
+  width: 0;
+  flex-basis: 0;
+  margin: 0;
+  border-width: 0;
+  opacity: 0;
+  transform: scale(0.82);
+}
+.ng-combo-control {
+  min-width: 0;
+  flex: 1 1 auto;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--c-text);
+  outline: none;
+  font-size: 0.875rem;
+}
+.ng-combo-control::placeholder { color: rgba(255,255,255,0.35); }
+/* Inputs with an icon inside the line: keep text away from the icon and fade the icon after typing/focus. */
+.ng-input-with-icon,
+.ng-icon-field > input,
+.relative:has(> svg.absolute):has(> input) > input {
+  padding-left: 3.5rem !important;
+}
+.ng-icon-field > .ng-field-icon {
+  top: 0 !important;
+  bottom: 0 !important;
+  left: 1rem !important;
+  transform: none !important;
+  z-index: 2;
+  line-height: 1;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.ng-icon-field > .ng-at-field-icon {
+  z-index: 2;
+  line-height: 1;
+  transform-origin: center;
+}
+.ng-icon-field.is-active > .ng-field-icon,
+.ng-icon-field:focus-within > .ng-field-icon,
+.ng-icon-field:has(input:not(:placeholder-shown)) > .ng-field-icon {
+  opacity: 0 !important;
+  transform: scale(0.82) !important;
+}
+.ng-icon-field.is-active > .ng-at-field-icon,
+.ng-icon-field:focus-within > .ng-at-field-icon,
+.ng-icon-field:has(input:not(:placeholder-shown)) > .ng-at-field-icon {
+  opacity: 0 !important;
+  transform: translateY(-50%) scale(0.82) !important;
+}
+.relative:has(> svg.absolute):focus-within > svg.absolute,
+.relative:has(> svg.absolute):has(> input:not(:placeholder-shown)) > svg.absolute {
+  opacity: 0 !important;
+  transform: translateY(-50%) scale(0.82) !important;
+}
+select,
+.ng-select {
+  color-scheme: dark;
+  background-color: rgb(var(--glass-r) var(--glass-g) var(--glass-b) / 0.92) !important;
+  color: var(--c-text) !important;
+  border-color: rgb(var(--accent-main-rgb) / 0.28) !important;
+}
+select option,
+select optgroup {
+  background-color: #100a24 !important;
+  color: #f4f0ff !important;
+}
+select option:checked,
+select option:hover {
+  background-color: rgb(var(--accent-main-rgb) / 0.45) !important;
+  color: #fff !important;
+}
+.ng-select-scroll {
+  scrollbar-gutter: stable;
+  padding-bottom: 6px;
+}
+.ng-select-scroll::-webkit-scrollbar { width: 7px; }
+.ng-select-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.035); border-radius: 999px; }
+.ng-select-scroll::-webkit-scrollbar-thumb { background: rgb(var(--accent-main-rgb) / 0.45); border-radius: 999px; }
+.ng-select-scroll { scrollbar-width: thin; scrollbar-color: rgb(var(--accent-main-rgb) / 0.45) rgba(255,255,255,0.035); }
+.ng-input:-webkit-autofill,
+.ng-input:-webkit-autofill:hover,
+.ng-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--c-text) !important;
+  transition: background-color 9999s ease-in-out 0s !important;
+  box-shadow: 0 0 0 1000px rgb(var(--glass-r) var(--glass-g) var(--glass-b) / 0.85) inset !important;
+}
+
+/* NightGram 2 adaptive application shell */
+.ng-app-shell { min-height: 100dvh; }
+.ng-app-content { min-height: 100dvh; padding: 5.25rem 0 6.5rem; }
+.ng-desktop-sidebar {
+  position: fixed; inset: 16px auto 16px 16px; z-index: 60; width: 244px;
+  flex-direction: column; padding: 20px 14px; border-radius: 28px;
+  background: rgba(10, 8, 22, .88); border: 1px solid rgba(255,255,255,.08);
+  box-shadow: 0 24px 80px rgba(0,0,0,.45); backdrop-filter: blur(24px) saturate(150%);
+}
+.ng-sidebar-link { display:flex; align-items:center; gap:12px; min-height:46px; padding:0 14px; border-radius:15px; color:rgba(255,255,255,.55); transition:.18s ease; }
+.ng-sidebar-link:hover { color:white; background:rgba(255,255,255,.06); transform:translateX(2px); }
+.ng-sidebar-link.is-active { color:white; background:linear-gradient(135deg, rgb(var(--accent-main-rgb)/.24), rgb(var(--accent-secondary-rgb)/.12)); border:1px solid rgb(var(--accent-main-rgb)/.3); box-shadow:0 8px 28px rgb(var(--accent-main-rgb)/.12); }
+.ng-profile-card { display:flex; align-items:center; gap:10px; padding:10px; border-radius:17px; background:rgba(255,255,255,.045); border:1px solid rgba(255,255,255,.06); }
+.ng-dot { position:absolute; right:-3px; top:-3px; width:8px; height:8px; border-radius:999px; background:#ff4d8d; box-shadow:0 0 10px #ff4d8d; }
+.ng-mobile-header { position:fixed; inset:0 0 auto 0; z-index:60; height:64px; padding:0 16px; align-items:center; justify-content:space-between; background:rgba(7,5,16,.9); border-bottom:1px solid rgba(255,255,255,.07); backdrop-filter:blur(20px); }
+.ng-mobile-action { display:grid; place-items:center; width:38px; height:38px; border-radius:13px; background:rgba(255,255,255,.06); }
+.ng-mobile-tabs { position:fixed; inset:auto 10px calc(10px + env(safe-area-inset-bottom)) 10px; z-index:70; height:64px; padding:6px; grid-template-columns:repeat(5,1fr); border-radius:22px; background:rgba(12,9,25,.94); border:1px solid rgba(255,255,255,.09); box-shadow:0 14px 50px rgba(0,0,0,.5); backdrop-filter:blur(24px); }
+.ng-mobile-tab { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border-radius:16px; color:rgba(255,255,255,.42); font-size:9px; }
+.ng-mobile-tab.is-active { color:white; background:rgb(var(--accent-main-rgb)/.18); }
+@media (min-width:768px) { .ng-app-content { padding: 24px 20px 24px 280px; } }
+@media (max-width:767px) { .ng-mobile-header { display:flex; } .ng-mobile-tabs { display:grid; } }
+
+
+/* Skip layout/paint work for feed cards and chat rows outside the viewport. */
+.ng-content-visibility {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 180px;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* NightGram 2.0: lightweight message entrance without per-row JS animation. */
+@keyframes ng-message-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ng-message-enter {
+  animation: ng-message-enter 140ms ease-out both;
+  contain: layout paint style;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ng-message-enter { animation: none; }
+}
+
+/* Native Android/iOS safe areas supplied by the system WebView. */
+html.nightgram-native {
+  --ng-safe-top: env(safe-area-inset-top, 0px);
+  --ng-safe-right: env(safe-area-inset-right, 0px);
+  --ng-safe-bottom: env(safe-area-inset-bottom, 0px);
+  --ng-safe-left: env(safe-area-inset-left, 0px);
+  background: #08070f;
+}
+html.nightgram-native body {
+  min-height: 100dvh;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+}

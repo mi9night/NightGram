@@ -1,0 +1,9 @@
+services:
+  coturn:
+    image: coturn/coturn:4.14.0-r0
+    container_name: nightgram-turn
+    restart: unless-stopped
+    network_mode: host
+    command: ["-c", "/etc/coturn/turnserver.conf"]
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
