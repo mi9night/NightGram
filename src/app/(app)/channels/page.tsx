@@ -220,15 +220,6 @@ function ChannelEditorModal({
     setCustomTag("");
   }
 
-  async function fileToDataUrl(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
   async function pick(file: File | undefined, type: "avatar" | "banner") {
     if (!file) return;
     setError(null);
@@ -236,12 +227,9 @@ function ChannelEditorModal({
       const url = await uploadMedia(file, "avatars");
       if (type === "avatar") setAvatarUrl(url);
       else setBannerUrl(url);
-    } catch {
-      // Fallback so channel creation is not blocked while Storage bucket is being configured.
-      const dataUrl = await fileToDataUrl(file);
-      if (type === "avatar") setAvatarUrl(dataUrl);
-      else setBannerUrl(dataUrl);
-      setError("Storage недоступен — изображение временно сохранено как data URL. Лучше настроить bucket nightgram-media.");
+    } catch (uploadError) {
+      const message = uploadError instanceof Error ? uploadError.message : "Не удалось загрузить изображение";
+      setError(`${message}. Проверь публичный bucket nightgram-media в Supabase.`);
     }
   }
 
@@ -270,8 +258,8 @@ function ChannelEditorModal({
         subscribed: channel?.subscribed ?? false,
       });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Ошибка";
-      setError(msg.includes("409") ? "Юзернейм канала уже занят или данные некорректны" : "Не удалось сохранить канал");
+      const msg = e instanceof Error ? e.message : "Не удалось сохранить канал";
+      setError(msg || "Не удалось сохранить канал");
     }
     setSaving(false);
   }

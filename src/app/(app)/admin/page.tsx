@@ -146,7 +146,7 @@ function TicketsSection() {
     setLoadNotice(null);
     try {
       const data = await withAdminTimeout(api.getTickets(filter), [], 8000);
-      const list = data as Record<string, unknown>[];
+      const list = Array.isArray(data) ? data as Record<string, unknown>[] : [];
       setTickets(list);
       setActiveId((current) => {
         if (current && list.some((t) => String(t.id) === current)) return current;
@@ -189,7 +189,7 @@ function TicketsSection() {
     setMessagesLoading(true);
     setReplyText("");
     api.getTicketMessages(activeId, true)
-      .then((data) => active && setMessages(data as Record<string, unknown>[]))
+      .then((data) => active && setMessages(Array.isArray(data) ? data as Record<string, unknown>[] : []))
       .catch(() => active && setMessages([]))
       .finally(() => active && setMessagesLoading(false));
     return () => { active = false; };
@@ -459,7 +459,12 @@ function UsersSection() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { const data = await withAdminTimeout(api.getAdminUsers(search, 50), []); setUsers(data as Record<string, unknown>[]); } catch { setUsers([]); }
+    try {
+      const data = await withAdminTimeout(api.getAdminUsers(search, 50), []);
+      setUsers(Array.isArray(data) ? data as Record<string, unknown>[] : []);
+    } catch {
+      setUsers([]);
+    }
     setLoading(false);
   }, [search]);
 
@@ -896,7 +901,12 @@ function PunishmentsSection() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    try { const data = await withAdminTimeout(api.getPunishments(), []); setList(data as Record<string, unknown>[]); } catch { setList([]); }
+    try {
+      const data = await withAdminTimeout(api.getPunishments(), []);
+      setList(Array.isArray(data) ? data as Record<string, unknown>[] : []);
+    } catch {
+      setList([]);
+    }
     setLoading(false);
   }, []);
 
@@ -975,7 +985,7 @@ function ReportsSection() {
     setLoading(true);
     try {
       const data = await withAdminTimeout(api.getReports(filter), [], 8000);
-      const reports = data as Record<string, unknown>[];
+      const reports = Array.isArray(data) ? data as Record<string, unknown>[] : [];
       setList(reports);
       setActiveId((current) => current && reports.some((r) => String(r.id) === current) ? current : (reports[0] ? String(reports[0].id) : null));
     } catch {
@@ -1001,7 +1011,9 @@ function ReportsSection() {
     else if (activeType === "channel") setEditDraft({ name: String(target.name ?? ""), description: String(target.description ?? "") });
     else if (activeType === "user") setEditDraft({ displayName: String(target.displayName ?? target.display_name ?? ""), bio: String(target.bio ?? "") });
     else setEditDraft({});
-    api.getReportNotes(String(activeReport.id)).then((data) => setNotes(data as Record<string, unknown>[])).catch(() => setNotes([]));
+    api.getReportNotes(String(activeReport.id))
+      .then((data) => setNotes(Array.isArray(data) ? data as Record<string, unknown>[] : []))
+      .catch(() => setNotes([]));
   }, [activeId, activeReport, activeType]);
 
   function targetTitle(report: Record<string, unknown>) {
@@ -1204,8 +1216,8 @@ function FinanceSection() {
         Promise.all([api.getPurchaseRequests(filter), api.getPaymentEvents(filter === "all" ? undefined : filter)]),
         new Promise<never>((_, r) => setTimeout(() => r(new Error("timeout")), 3000)),
       ]);
-      setRequests(data as Record<string, unknown>[]);
-      setPaymentEvents(events as Record<string, unknown>[]);
+      setRequests(Array.isArray(data) ? data as Record<string, unknown>[] : []);
+      setPaymentEvents(Array.isArray(events) ? events as Record<string, unknown>[] : []);
     } catch {
       setRequests([]);
       setPaymentEvents([]);
@@ -1320,7 +1332,7 @@ function StoreAdminSection() {
     setLoading(true);
     try {
       const data = await withAdminTimeout(api.getStoreItems(), []);
-      setItems(data as unknown as Record<string, unknown>[]);
+      setItems(Array.isArray(data) ? data as unknown as Record<string, unknown>[] : []);
     } catch {
       setItems([]);
     }
@@ -1775,11 +1787,11 @@ function SafetySection() {
         withAdminTimeout(api.getSafetyUsers("trusted"), [], 6000),
         withAdminTimeout(api.getSafetyUsers("restricted"), [], 6000),
       ]);
-      setEvents(eventsData as Record<string, unknown>[]);
-      setFlags(flagsData as Record<string, unknown>[]);
-      setDomains(domainsData as Record<string, unknown>[]);
-      setTrustedUsers(trustedData as Record<string, unknown>[]);
-      setRestrictedUsers(restrictedData as Record<string, unknown>[]);
+      setEvents(Array.isArray(eventsData) ? eventsData as Record<string, unknown>[] : []);
+      setFlags(Array.isArray(flagsData) ? flagsData as Record<string, unknown>[] : []);
+      setDomains(Array.isArray(domainsData) ? domainsData as Record<string, unknown>[] : []);
+      setTrustedUsers(Array.isArray(trustedData) ? trustedData as Record<string, unknown>[] : []);
+      setRestrictedUsers(Array.isArray(restrictedData) ? restrictedData as Record<string, unknown>[] : []);
     } catch {
       setEvents([]);
       setFlags([]);
@@ -1798,7 +1810,9 @@ function SafetySection() {
       return;
     }
     const timer = window.setTimeout(() => {
-      api.getAdminUsers(userQuery.trim(), 8).then((data) => setUserResults(data as Record<string, unknown>[])).catch(() => setUserResults([]));
+      api.getAdminUsers(userQuery.trim(), 8)
+        .then((data) => setUserResults(Array.isArray(data) ? data as Record<string, unknown>[] : []))
+        .catch(() => setUserResults([]));
     }, 300);
     return () => window.clearTimeout(timer);
   }, [userQuery]);
@@ -2094,7 +2108,7 @@ function LogSection() {
   useEffect(() => {
     let active = true;
     withAdminTimeout(api.getLogs(), [], 6000)
-      .then((data) => active && setLogs(data as Record<string, unknown>[]))
+      .then((data) => active && setLogs(Array.isArray(data) ? data as Record<string, unknown>[] : []))
       .catch(() => active && setLogs([]))
       .finally(() => active && setLoading(false));
     return () => { active = false; };

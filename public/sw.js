@@ -1,4 +1,4 @@
-const STATIC_CACHE = "nightgram-static-v3.4.1";
+const STATIC_CACHE = "nightgram-static-v3.4.2";
 
 const STATIC_ASSETS = [
   "/manifest.json",
@@ -25,10 +25,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter(
-              (key) =>
-                key.startsWith("nightgram-static-") && key !== STATIC_CACHE,
-            )
+            .filter((key) => key.startsWith("nightgram-static-") && key !== STATIC_CACHE)
             .map((key) => caches.delete(key)),
         ),
       )
@@ -44,42 +41,30 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/socket.io/")) return;
 
+  // Pages always come from the network. Offline page is only a fallback.
   if (request.mode === "navigate") {
-    event.respondWith(
-      fetch(request).catch(() => caches.match("/offline.html")),
-    );
+    event.respondWith(fetch(request).catch(() => caches.match("/offline.html")));
     return;
   }
 
-  const isStatic =
-    url.pathname.startsWith("/_next/static/") ||
-    STATIC_ASSETS.includes(url.pathname);
+  // Do not intercept Next.js chunks. Their filenames are already content-hashed,
+  // and the browser HTTP cache handles them more safely than a service worker.
+  if (url.pathname.startsWith("/_next/")) return;
 
-  if (!isStatic) return;
-
-  // Clone the network response immediately, before the browser starts
-  // consuming its body. The previous version cloned it only after
-  // caches.open() resolved, which could be too late and caused:
-  // "Response body is already used".
-  const networkResult = fetch(request).then((response) => ({
-    response,
-    cacheCopy: response.ok ? response.clone() : null,
-  }));
-
-  event.waitUntil(
-    networkResult
-      .then(async ({ cacheCopy }) => {
-        if (!cacheCopy) return;
-        const cache = await caches.open(STATIC_CACHE);
-        await cache.put(request, cacheCopy);
-      })
-      .catch(() => {}),
-  );
+  if (!STATIC_ASSETS.includes(url.pathname)) return;
 
   event.respondWith(
     caches.match(request).then(async (cached) => {
       if (cached) return cached;
-      return (await networkResult).response;
+
+      const response = await fetch(request);
+      if (response.ok) {
+        const copy = response.clone();
+        event.waitUntil(
+          caches.open(STATIC_CACHE).then((cache) => cache.put(request, copy)),
+        );
+      }
+      return response;
     }),
   );
 });

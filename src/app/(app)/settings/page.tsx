@@ -509,6 +509,7 @@ function ProfileSection() {
   const [ownedStoreItems, setOwnedStoreItems] = useState<StoreItem[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [profileNotice, setProfileNotice] = useState<string | null>(null);
   const [showPremiumBannerModal, setShowPremiumBannerModal] = useState(false);
 
   useEffect(() => {
@@ -529,15 +530,31 @@ function ProfileSection() {
   async function pickAvatar(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const url = await uploadMedia(f, "avatars");
-    setAvatarUrl(url);
+    setProfileNotice(null);
+    try {
+      const url = await uploadMedia(f, "avatars");
+      setAvatarUrl(url);
+      setProfileNotice("Аватар загружен. Нажми «Сохранить изменения».");
+    } catch (error) {
+      setProfileNotice(error instanceof Error ? error.message : "Не удалось загрузить аватар");
+    } finally {
+      e.target.value = "";
+    }
   }
 
   async function pickBanner(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const url = await uploadMedia(f, "posts");
-    setBannerUrl(url);
+    setProfileNotice(null);
+    try {
+      const url = await uploadMedia(f, "posts");
+      setBannerUrl(url);
+      setProfileNotice("Баннер загружен. Нажми «Сохранить изменения».");
+    } catch (error) {
+      setProfileNotice(error instanceof Error ? error.message : "Не удалось загрузить баннер");
+    } finally {
+      e.target.value = "";
+    }
   }
 
   async function onSave() {
@@ -561,8 +578,8 @@ function ProfileSection() {
       updateUser(updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
-    } catch {
-      /* ignore */
+    } catch (error) {
+      setProfileNotice(error instanceof Error ? error.message : "Не удалось сохранить профиль");
     } finally {
       setSaving(false);
     }
@@ -578,6 +595,12 @@ function ProfileSection() {
   return (
     <div className="gradient-border rounded-4xl glass-strong p-5 md:p-6 space-y-5">
       <SectionTitle icon={UserIcon} title="Профиль" desc="Аватар, баннер, имя и ID" />
+
+      {profileNotice && (
+        <div className="rounded-2xl border border-neon-purple/25 bg-neon-purple/10 px-3 py-2 text-xs text-white/70">
+          {profileNotice}
+        </div>
+      )}
 
       {/* Banner — gradient by default, custom upload needs Premium */}
       <div>

@@ -120,20 +120,40 @@ export default function ProfilePage() {
       setFollowersCountLocal(Number(u.followersCount ?? 0));
       setFollowingCountLocal(Number(u.followingCount ?? 0));
       if (u.username) {
-        api.getUserPosts(u.username).catch(() => []).then((p) => active && setPosts(p));
-        api.getUserComments(u.username).catch(() => []).then((c) => active && setComments(c));
-        api.getProfileWall(u.username).catch(() => []).then((w) => active && setWallPosts(w as Record<string, unknown>[]));
-        api.getOwnedStoreItems(u.username).catch(() => []).then((items) => active && setOwnedItems(items));
-        api.getUserGifts(u.username).catch(() => []).then((items) => active && setGifts(items as Record<string, unknown>[]));
-        api.getUserSocial(u.username).catch(() => ({ friends: [], channels: [], hidden: false })).then((social) => active && setSocialLists(social as { friends: Record<string, unknown>[]; channels: Record<string, unknown>[]; hidden?: boolean }));
+        api.getUserPosts(u.username).catch(() => []).then((value) => {
+          if (active) setPosts(Array.isArray(value) ? value : []);
+        });
+        api.getUserComments(u.username).catch(() => []).then((value) => {
+          if (active) setComments(Array.isArray(value) ? value : []);
+        });
+        api.getProfileWall(u.username).catch(() => []).then((value) => {
+          if (active) setWallPosts(Array.isArray(value) ? value as Record<string, unknown>[] : []);
+        });
+        api.getOwnedStoreItems(u.username).catch(() => []).then((value) => {
+          if (active) setOwnedItems(Array.isArray(value) ? value : []);
+        });
+        api.getUserGifts(u.username).catch(() => []).then((value) => {
+          if (active) setGifts(Array.isArray(value) ? value as Record<string, unknown>[] : []);
+        });
+        api.getUserSocial(u.username).catch(() => ({ friends: [], channels: [], hidden: false })).then((value) => {
+          if (!active) return;
+          const social = value && typeof value === "object" ? value as Record<string, unknown> : {};
+          setSocialLists({
+            friends: Array.isArray(social.friends) ? social.friends as Record<string, unknown>[] : [],
+            channels: Array.isArray(social.channels) ? social.channels as Record<string, unknown>[] : [],
+            hidden: Boolean(social.hidden),
+          });
+        });
         if (!isMe) {
-          api.getSocial().catch(() => ({ blocked: [] })).then((social) => {
+          api.getSocial().catch(() => ({ blocked: [], following: [], friends: [] })).then((value) => {
             if (!active) return;
-            const sdata = social as { blocked?: Record<string, unknown>[]; following?: Record<string, unknown>[]; friends?: Record<string, unknown>[] };
-            const blocked = (sdata.blocked ?? []).some((x) => String(x.id) === String(u.id));
-            setIsBlocked(blocked);
-            setIsFollowing((sdata.following ?? []).some((x) => String(x.id) === String(u.id)));
-            setIsFriend((sdata.friends ?? []).some((x) => String(x.id) === String(u.id)));
+            const social = value && typeof value === "object" ? value as Record<string, unknown> : {};
+            const blocked = Array.isArray(social.blocked) ? social.blocked as Record<string, unknown>[] : [];
+            const following = Array.isArray(social.following) ? social.following as Record<string, unknown>[] : [];
+            const friends = Array.isArray(social.friends) ? social.friends as Record<string, unknown>[] : [];
+            setIsBlocked(blocked.some((x) => String(x.id) === String(u.id)));
+            setIsFollowing(following.some((x) => String(x.id) === String(u.id)));
+            setIsFriend(friends.some((x) => String(x.id) === String(u.id)));
           });
         }
       }
@@ -186,7 +206,7 @@ export default function ProfilePage() {
     followingCount: Number(profile.followingCount ?? 0),
     postsCount: Number(profile.postsCount ?? 0),
     customId: profile.customId ?? null,
-    ownedItems: profile.ownedItems ?? [],
+    ownedItems: Array.isArray(profile.ownedItems) ? profile.ownedItems : [],
     hidePurchases: profile.hidePurchases ?? false,
     nightStatusText: profile.nightStatusText ?? null,
     nightStatusEmoji: profile.nightStatusEmoji ?? null,
@@ -241,8 +261,9 @@ export default function ProfilePage() {
     try {
       const res = kind === "followers" ? await api.getUserFollowers(safeProfile.username) : await api.getUserFollowing(safeProfile.username);
       if (res.hidden) return;
-      if (kind === "followers") setFollowersList(res.users as Record<string, unknown>[]);
-      else setFollowingList(res.users as Record<string, unknown>[]);
+      const users = Array.isArray(res.users) ? res.users as Record<string, unknown>[] : [];
+      if (kind === "followers") setFollowersList(users);
+      else setFollowingList(users);
     } catch {
       if (kind === "followers") setFollowersList([]);
       else setFollowingList([]);
@@ -714,7 +735,7 @@ function WallPostCard({ post, index, onPatch, onDeleted }: { post: Record<string
     setLoadingComments(true);
     try {
       const data = await api.getWallComments(id);
-      setComments(data as Record<string, unknown>[]);
+      setComments(Array.isArray(data) ? data as Record<string, unknown>[] : []);
     } catch {
       setComments([]);
     } finally {

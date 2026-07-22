@@ -601,10 +601,10 @@ export const api = {
     };
   },
 
-  async getCallHistory(limit = 50): Promise<CallHistoryEntry[]> {
-    const raw = await request<unknown>(`/calls/history?limit=${Math.max(1, Math.min(100, limit))}`);
-    return normalizeArrayResponse<CallHistoryEntry>(raw, ["calls", "history"], "/calls/history");
-  },
+async getCallHistory(limit = 50): Promise<CallHistoryEntry[]> {
+  const raw = await request<unknown>(`/calls/history?limit=${Math.max(1, Math.min(100, limit))}`);
+  return normalizeArrayResponse<CallHistoryEntry>(raw, ["history", "calls"], "/calls/history");
+},
 
   async getPendingCall(): Promise<CallHistoryEntry | null> {
     const raw = await request<unknown | null>("/calls/pending");
@@ -695,10 +695,10 @@ export const api = {
     return request("/auth/2fa/recovery/complete", { method: "POST", body: JSON.stringify({ password }) });
   },
 
-  async getSecurityEvents(limit = 40): Promise<SecurityEvent[]> {
-    const raw = await request<unknown>(`/auth/security-events?limit=${Math.min(100, Math.max(1, limit))}`);
-    return normalizeArrayResponse<SecurityEvent>(raw, ["events"], "/auth/security-events");
-  },
+async getSecurityEvents(limit = 40): Promise<SecurityEvent[]> {
+  const raw = await request<unknown>(`/auth/security-events?limit=${Math.min(100, Math.max(1, limit))}`);
+  return normalizeArrayResponse<SecurityEvent>(raw, ["events", "securityEvents"], "/auth/security-events");
+},
 
   async me(): Promise<User> {
     const raw = await request<unknown>("/auth/me");
@@ -719,10 +719,10 @@ export const api = {
     return result;
   },
 
-  async getAuthSessions(): Promise<AuthDeviceSession[]> {
-    const raw = await request<unknown>("/auth/sessions");
-    return normalizeArrayResponse<AuthDeviceSession>(raw, ["sessions"], "/auth/sessions");
-  },
+async getAuthSessions(): Promise<AuthDeviceSession[]> {
+  const raw = await request<unknown>("/auth/sessions");
+  return normalizeArrayResponse<AuthDeviceSession>(raw, ["sessions"], "/auth/sessions");
+},
 
   async revokeAuthSession(sessionId: string): Promise<{ ok: boolean; current?: boolean }> {
     return request(`/auth/sessions/${encodeURIComponent(sessionId)}`, { method: "DELETE" });
@@ -757,10 +757,10 @@ export const api = {
   },
 
   // ---- Stories ------------------------------------------------------------
-  async getStories(): Promise<unknown[]> {
-    const raw = await request<unknown>("/stories");
-    return normalizeArrayResponse<unknown>(raw, ["stories", "groups"], "/stories");
-  },
+async getStories(): Promise<unknown[]> {
+  const raw = await request<unknown>("/stories");
+  return normalizeArrayResponse<unknown>(raw, ["stories", "groups"], "/stories");
+},
   async createStory(payload: { mediaUrl: string; mediaType?: "image" | "video"; text?: string; visibility?: "public" | "followers" | "circle"; circleId?: string }): Promise<unknown> {
     const raw = await request<unknown>("/stories", { method: "POST", body: JSON.stringify(payload) });
     return normalize<unknown>(raw);
@@ -771,10 +771,10 @@ export const api = {
   async toggleStoryLike(storyId: string): Promise<{ ok: boolean; liked: boolean }> {
     return request(`/stories/${storyId}/like`, { method: "POST" });
   },
-  async getStoryLikes(storyId: string): Promise<unknown[]> {
-    const raw = await request<unknown>(`/stories/${storyId}/likes`);
-    return normalizeArrayResponse<unknown>(raw, ["likes", "users"], "/stories/:id/likes");
-  },
+async getStoryLikes(storyId: string): Promise<unknown[]> {
+  const raw = await request<unknown>(`/stories/${storyId}/likes`);
+  return normalizeArrayResponse<unknown>(raw, ["likes", "users"], "/stories/:id/likes");
+},
 
   // ---- Feed ---------------------------------------------------------------
 
@@ -817,10 +817,10 @@ export const api = {
     return normalize<{ saved: boolean }>(raw);
   },
 
-  async getComments(postId: string): Promise<Comment[]> {
-    const raw = await request<unknown>(`/posts/${postId}/comments`);
-    return normalizeArrayResponse<Comment>(raw, ["comments"], "/posts/:id/comments");
-  },
+async getComments(postId: string): Promise<Comment[]> {
+  const raw = await request<unknown>(`/posts/${postId}/comments`);
+  return normalizeArrayResponse<Comment>(raw, ["comments"], "/posts/:id/comments");
+},
 
   async addComment(postId: string, text: string, parentId?: string | null): Promise<Comment> {
     const raw = await request<unknown>(`/posts/${postId}/comments`, {
@@ -873,20 +873,20 @@ export const api = {
 
   // ---- Messenger ----------------------------------------------------------
 
-  async getConversations(): Promise<Conversation[]> {
-    const raw = await request<unknown>("/conversations");
-    return normalizeArrayResponse<unknown>(raw, ["conversations"], "/conversations").map(normalizeConversation);
-  },
+async getConversations(): Promise<Conversation[]> {
+  const raw = await request<unknown>("/conversations");
+  return normalizeArrayResponse<unknown>(raw, ["conversations"], "/conversations").map(normalizeConversation);
+},
 
-  async getMessages(conversationId: string): Promise<Message[]> {
-    const raw = await request<unknown>(`/conversations/${conversationId}/messages`);
-    return normalizeArrayResponse<unknown>(raw, ["messages"], "/conversations/:id/messages").map(normalizeMessage);
-  },
+async getMessages(conversationId: string): Promise<Message[]> {
+  const raw = await request<unknown>(`/conversations/${conversationId}/messages`);
+  return normalizeArrayResponse<unknown>(raw, ["messages"], "/conversations/:id/messages").map(normalizeMessage);
+},
 
-  async getPinnedMessages(conversationId: string): Promise<Message[]> {
-    const raw = await request<unknown>(`/conversations/${conversationId}/pinned-messages`);
-    return normalizeArrayResponse<unknown>(raw, ["messages", "pinnedMessages"], "/conversations/:id/pinned-messages").map(normalizeMessage);
-  },
+async getPinnedMessages(conversationId: string): Promise<Message[]> {
+  const raw = await request<unknown>(`/conversations/${conversationId}/pinned-messages`);
+  return normalizeArrayResponse<unknown>(raw, ["messages", "pinnedMessages"], "/conversations/:id/pinned-messages").map(normalizeMessage);
+},
   async createPoll(conversationId: string, payload: { question: string; options: string[]; allowMultiple?: boolean; anonymous?: boolean }): Promise<Message> {
     const raw = await request<unknown>(`/conversations/${conversationId}/polls`, { method: "POST", body: JSON.stringify(payload) });
     return normalizeMessage(raw);
@@ -903,10 +903,10 @@ export const api = {
   },
 
 
-  async getScheduledMessages(conversationId: string): Promise<ScheduledMessage[]> {
-    const raw = await request<unknown>(`/conversations/${conversationId}/scheduled`);
-    return normalizeArrayResponse<ScheduledMessage>(raw, ["messages", "scheduledMessages"], "/conversations/:id/scheduled");
-  },
+async getScheduledMessages(conversationId: string): Promise<ScheduledMessage[]> {
+  const raw = await request<unknown>(`/conversations/${conversationId}/scheduled`);
+  return normalizeArrayResponse<ScheduledMessage>(raw, ["messages", "scheduled"], "/conversations/:id/scheduled");
+},
 
   async scheduleMessage(conversationId: string, payload: {
     text?: string;
@@ -939,10 +939,10 @@ export const api = {
     return request(`/conversations/${conversationId}/messages/${messageId}/pin`, { method: "POST" });
   },
 
-  async getMessageContext(conversationId: string, messageId: string): Promise<Message[]> {
-    const raw = await request<unknown>(`/conversations/${conversationId}/messages/${messageId}/context`);
-    return normalizeArrayResponse<unknown>(raw, ["messages", "context"], "/conversations/:id/messages/:id/context").map(normalizeMessage);
-  },
+async getMessageContext(conversationId: string, messageId: string): Promise<Message[]> {
+  const raw = await request<unknown>(`/conversations/${conversationId}/messages/${messageId}/context`);
+  return normalizeArrayResponse<unknown>(raw, ["messages", "context"], "/conversations/:id/messages/:id/context").map(normalizeMessage);
+},
 
   async getMessagesPage(
     conversationId: string,
@@ -972,7 +972,7 @@ export const api = {
       nextBefore?: string | null;
       nextAfter?: string | null;
     };
-    const messages = (payload.messages || []).map(normalizeMessage);
+    const messages = (Array.isArray(payload.messages) ? payload.messages : []).map(normalizeMessage);
     return {
       messages,
       hasMore: Boolean(payload.hasMore),
@@ -981,10 +981,10 @@ export const api = {
     };
   },
 
-  async searchUsers(q: string): Promise<unknown[]> {
-    const raw = await request<unknown>(`/users/search?q=${encodeURIComponent(q)}`);
-    return normalizeArrayResponse<unknown>(raw, ["users"], "/users/search");
-  },
+async searchUsers(q: string): Promise<unknown[]> {
+  const raw = await request<unknown>(`/users/search?q=${encodeURIComponent(q)}`);
+  return normalizeArrayResponse<unknown>(raw, ["users"], "/users/search");
+},
 
   async globalSearch(q: string, type: GlobalSearchType = "all", limit = 12): Promise<GlobalSearchResponse> {
     const params = new URLSearchParams({ q, type, limit: String(limit) });
@@ -1069,16 +1069,16 @@ export const api = {
 
   // ---- Night Store --------------------------------------------------------
 
-  async getStoreItems(): Promise<StoreItem[]> {
-    const raw = await request<unknown>("/store/items");
-    return normalizeArrayResponse<StoreItem>(raw, ["items"], "/store/items");
-  },
+async getStoreItems(): Promise<StoreItem[]> {
+  const raw = await request<unknown>("/store/items");
+  return normalizeArrayResponse<StoreItem>(raw, ["items"], "/store/items");
+},
 
-  async getOwnedStoreItems(username?: string): Promise<StoreItem[]> {
-    const qs = username ? `?username=${encodeURIComponent(username)}` : "";
-    const raw = await request<unknown>(`/store/owned${qs}`);
-    return normalizeArrayResponse<StoreItem>(raw, ["items", "owned"], "/store/owned");
-  },
+async getOwnedStoreItems(username?: string): Promise<StoreItem[]> {
+  const qs = username ? `?username=${encodeURIComponent(username)}` : "";
+  const raw = await request<unknown>(`/store/owned${qs}`);
+  return normalizeArrayResponse<StoreItem>(raw, ["items", "owned"], "/store/owned");
+},
 
   async createStoreItem(payload: Partial<StoreItem> & { name: string; description?: string; previewUrl: string }): Promise<StoreItem> {
     const raw = await request<unknown>("/admin/store/items", {
@@ -1125,10 +1125,14 @@ export const api = {
     return normalize<{ ok: boolean; balance: number; level: number; serialNumber?: number | null; nftMetadata?: StoreItem["nftMetadata"]; upgradedAt?: string | null; cost?: number; item?: StoreItem }>(raw);
   },
 
-  async getCoinTransactions(): Promise<{ id: string; delta: number; reason: string; referenceId?: string | null; createdAt: string }[]> {
-    const raw = await request<unknown[]>("/store/transactions");
-    return normalize<{ id: string; delta: number; reason: string; referenceId?: string | null; createdAt: string }[]>(raw);
-  },
+async getCoinTransactions(): Promise<{ id: string; delta: number; reason: string; referenceId?: string | null; createdAt: string }[]> {
+  const raw = await request<unknown>("/store/transactions");
+  return normalizeArrayResponse<{ id: string; delta: number; reason: string; referenceId?: string | null; createdAt: string }>(
+    raw,
+    ["transactions"],
+    "/store/transactions",
+  );
+},
 
   async createCheckoutSession(itemId: string): Promise<{ url: string }> {
     return request(`/store/items/${itemId}/checkout`, { method: "POST" });
@@ -1141,25 +1145,25 @@ export const api = {
     return normalizeUser(raw);
   },
 
-  async getUserPosts(username: string): Promise<Post[]> {
-    const raw = await request<unknown>(`/users/${username}/posts`);
-    return normalizeArrayResponse<Post>(raw, ["posts"], "/users/:username/posts");
-  },
+async getUserPosts(username: string): Promise<Post[]> {
+  const raw = await request<unknown>(`/users/${username}/posts`);
+  return normalizeArrayResponse<Post>(raw, ["posts"], "/users/:username/posts");
+},
 
-  async getUserComments(username: string): Promise<Comment[]> {
-    const raw = await request<unknown>(`/users/${username}/comments`);
-    return normalizeArrayResponse<Comment>(raw, ["comments"], "/users/:username/comments");
-  },
+async getUserComments(username: string): Promise<Comment[]> {
+  const raw = await request<unknown>(`/users/${username}/comments`);
+  return normalizeArrayResponse<Comment>(raw, ["comments"], "/users/:username/comments");
+},
 
-  async getUserGifts(username: string): Promise<unknown[]> {
-    const raw = await request<unknown[]>(`/users/${username}/gifts`);
-    return normalize<unknown[]>(raw);
-  },
+async getUserGifts(username: string): Promise<unknown[]> {
+  const raw = await request<unknown>(`/users/${username}/gifts`);
+  return normalizeArrayResponse<unknown>(raw, ["gifts"], "/users/:username/gifts");
+},
 
-  async getProfileWall(username: string): Promise<unknown[]> {
-    const raw = await request<unknown[]>(`/users/${username}/wall`);
-    return normalize<unknown[]>(raw);
-  },
+async getProfileWall(username: string): Promise<unknown[]> {
+  const raw = await request<unknown>(`/users/${username}/wall`);
+  return normalizeArrayResponse<unknown>(raw, ["posts", "wall"], "/users/:username/wall");
+},
 
   async addProfileWall(username: string, payload: { text?: string; media?: { type: "image" | "video"; url: string }[] }): Promise<unknown> {
     const raw = await request<unknown>(`/users/${username}/wall`, { method: "POST", body: JSON.stringify(payload) });
@@ -1180,10 +1184,10 @@ export const api = {
     return request(`/users/wall/${postId}`, { method: "DELETE" });
   },
 
-  async getWallComments(postId: string): Promise<unknown[]> {
-    const raw = await request<unknown[]>(`/users/wall/${postId}/comments`);
-    return normalize<unknown[]>(raw);
-  },
+async getWallComments(postId: string): Promise<unknown[]> {
+  const raw = await request<unknown>(`/users/wall/${postId}/comments`);
+  return normalizeArrayResponse<unknown>(raw, ["comments"], "/users/wall/:id/comments");
+},
 
   async addWallComment(postId: string, text: string, parentId?: string | null): Promise<unknown> {
     const raw = await request<unknown>(`/users/wall/${postId}/comments`, { method: "POST", body: JSON.stringify({ text, parentId }) });
@@ -1204,15 +1208,21 @@ export const api = {
     return request(`/users/wall/comments/${commentId}`, { method: "DELETE" });
   },
 
-  async getUserFollowers(username: string): Promise<{ hidden?: boolean; users: unknown[] }> {
-    const raw = await request<unknown>(`/users/${username}/followers`);
-    return normalize<{ hidden?: boolean; users: unknown[] }>(raw);
-  },
+async getUserFollowers(username: string): Promise<{ hidden?: boolean; users: unknown[] }> {
+  const raw = normalize<Record<string, unknown>>(await request<unknown>(`/users/${username}/followers`));
+  return {
+    hidden: Boolean(raw.hidden),
+    users: Array.isArray(raw.users) ? raw.users : [],
+  };
+},
 
-  async getUserFollowing(username: string): Promise<{ hidden?: boolean; users: unknown[] }> {
-    const raw = await request<unknown>(`/users/${username}/following`);
-    return normalize<{ hidden?: boolean; users: unknown[] }>(raw);
-  },
+async getUserFollowing(username: string): Promise<{ hidden?: boolean; users: unknown[] }> {
+  const raw = normalize<Record<string, unknown>>(await request<unknown>(`/users/${username}/following`));
+  return {
+    hidden: Boolean(raw.hidden),
+    users: Array.isArray(raw.users) ? raw.users : [],
+  };
+},
 
   async updateProfile(payload: Partial<Pick<User, "displayName" | "bio" | "nameColor" | "nameColorId" | "avatarUrl" | "bannerUrl" | "glowEffect" | "avatarFrame" | "customId" | "notificationSettings" | "hideSocial" | "hidePurchases" | "privacyProfile" | "privacyMessages" | "privacyGroups" | "privacyLastSeen" | "hideReadReceipts" | "filterUnknownMessages" | "nightStatusText" | "nightStatusEmoji" | "nightStatusExpiresAt" | "musicArtist" | "musicTrack" | "roomScene">>): Promise<User> {
     const raw = await request<unknown>("/users/me", { method: "PATCH", body: JSON.stringify(payload) });
@@ -1221,10 +1231,10 @@ export const api = {
 
   // ---- Notifications ------------------------------------------------------
 
-  async getNotifications(): Promise<AppNotification[]> {
-    const raw = await request<unknown>("/notifications");
-    return normalizeArrayResponse<unknown>(raw, ["notifications"], "/notifications").map(normalizeNotification);
-  },
+async getNotifications(): Promise<AppNotification[]> {
+  const raw = await request<unknown>("/notifications");
+  return normalizeArrayResponse<unknown>(raw, ["notifications"], "/notifications").map(normalizeNotification);
+},
 
   async markAllNotificationsRead(): Promise<{ ok: boolean }> {
     return request("/notifications/read-all", { method: "POST" });
@@ -1277,17 +1287,17 @@ export const api = {
     return normalize<{ id: string; paymentCode?: string; paymentComment?: string; giftRecipientUsername?: string; giftRecipientNgId?: number }>(raw);
   },
 
-  async getPurchaseRequests(status?: string): Promise<unknown[]> {
-    const qs = status ? `?status=${status}` : "";
-    const raw = await request<unknown[]>(`/admin/purchases${qs}`);
-    return normalize<unknown[]>(raw);
-  },
+async getPurchaseRequests(status?: string): Promise<unknown[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  const raw = await request<unknown>(`/admin/purchases${qs}`);
+  return normalizeArrayResponse<unknown>(raw, ["purchases", "requests"], "/admin/purchases");
+},
 
-  async getPaymentEvents(status?: string): Promise<unknown[]> {
-    const qs = status ? `?status=${status}` : "";
-    const raw = await request<unknown[]>(`/admin/payments/events${qs}`);
-    return normalize<unknown[]>(raw);
-  },
+async getPaymentEvents(status?: string): Promise<unknown[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  const raw = await request<unknown>(`/admin/payments/events${qs}`);
+  return normalizeArrayResponse<unknown>(raw, ["events", "payments"], "/admin/payments/events");
+},
 
   async approvePurchase(id: string): Promise<{ ok: boolean }> {
     return request(`/admin/purchases/${id}/approve`, { method: "POST" });
@@ -1298,10 +1308,10 @@ export const api = {
   },
 
   // ---- Channels ------------------------------------------------------------
-  async getChannels(): Promise<(unknown & { subscribed?: boolean })[]> {
-    const raw = await request<unknown>("/channels");
-    return normalizeArrayResponse<unknown & { subscribed?: boolean }>(raw, ["channels"], "/channels");
-  },
+async getChannels(): Promise<(unknown & { subscribed?: boolean })[]> {
+  const raw = await request<unknown>("/channels");
+  return normalizeArrayResponse<unknown & { subscribed?: boolean }>(raw, ["channels"], "/channels");
+},
   async toggleChannelSubscription(channelId: string): Promise<{ ok: boolean; subscribed: boolean }> {
     return request(`/channels/${channelId}/subscribe`, { method: "POST" });
   },
@@ -1313,18 +1323,18 @@ export const api = {
     const raw = await request<unknown>("/channels", { method: "POST", body: JSON.stringify(payload) });
     return normalize<unknown>(raw);
   },
-  async getChannelPosts(channelId: string): Promise<Post[]> {
-    const raw = await request<unknown>(`/channels/${channelId}/posts`);
-    return normalizeArrayResponse<Post>(raw, ["posts"], "/channels/:id/posts");
-  },
+async getChannelPosts(channelId: string): Promise<Post[]> {
+  const raw = await request<unknown>(`/channels/${channelId}/posts`);
+  return normalizeArrayResponse<Post>(raw, ["posts"], "/channels/:id/posts");
+},
   async getChannelAnalytics(channelId: string): Promise<unknown> {
     const raw = await request<unknown>(`/channels/${channelId}/analytics`);
     return normalize<unknown>(raw);
   },
-  async getChannelDrafts(channelId: string): Promise<Post[]> {
-    const raw = await request<unknown>(`/channels/${channelId}/drafts`);
-    return normalizeArrayResponse<Post>(raw, ["posts", "drafts"], "/channels/:id/drafts");
-  },
+async getChannelDrafts(channelId: string): Promise<Post[]> {
+  const raw = await request<unknown>(`/channels/${channelId}/drafts`);
+  return normalizeArrayResponse<Post>(raw, ["posts", "drafts"], "/channels/:id/drafts");
+},
   async publishChannelDraft(channelId: string, postId: string): Promise<Post> {
     const raw = await request<unknown>(`/channels/${channelId}/drafts/${postId}/publish`, { method: "POST" });
     return normalize<Post>(raw);
@@ -1332,10 +1342,10 @@ export const api = {
   async deleteChannelDraft(channelId: string, postId: string): Promise<{ ok: boolean }> {
     return request(`/channels/${channelId}/drafts/${postId}`, { method: "DELETE" });
   },
-  async getChannelRoles(channelId: string): Promise<unknown[]> {
-    const raw = await request<unknown[]>(`/channels/${channelId}/roles`);
-    return normalize<unknown[]>(raw);
-  },
+async getChannelRoles(channelId: string): Promise<unknown[]> {
+  const raw = await request<unknown>(`/channels/${channelId}/roles`);
+  return normalizeArrayResponse<unknown>(raw, ["roles", "members"], "/channels/:id/roles");
+},
   async setChannelRole(channelId: string, userId: string, role: string): Promise<{ ok: boolean; role: string }> {
     return request(`/channels/${channelId}/roles`, { method: "POST", body: JSON.stringify({ userId, role }) });
   },
@@ -1356,29 +1366,31 @@ export const api = {
     return request(`/channels/${channelId}/chat`, { method: "POST" });
   },
 
-  async getChannelSubscribers(channelId: string): Promise<unknown[]> {
-    const raw = await request<unknown[]>(`/channels/${channelId}/subscribers`);
-    return normalize<unknown[]>(raw);
-  },
-  async getChannelBans(channelId: string): Promise<unknown[]> {
-    return normalize<unknown[]>(await request<unknown[]>(`/channels/${channelId}/bans`));
-  },
+async getChannelSubscribers(channelId: string): Promise<unknown[]> {
+  const raw = await request<unknown>(`/channels/${channelId}/subscribers`);
+  return normalizeArrayResponse<unknown>(raw, ["subscribers", "users"], "/channels/:id/subscribers");
+},
+async getChannelBans(channelId: string): Promise<unknown[]> {
+  const raw = await request<unknown>(`/channels/${channelId}/bans`);
+  return normalizeArrayResponse<unknown>(raw, ["bans"], "/channels/:id/bans");
+},
   async banChannelSubscriber(channelId: string, payload: { userId: string; reason?: string; expiresAt?: string | null }): Promise<{ ok: boolean }> {
     return request(`/channels/${channelId}/bans`, { method: "POST", body: JSON.stringify(payload) });
   },
   async unbanChannelSubscriber(channelId: string, userId: string): Promise<{ ok: boolean }> {
     return request(`/channels/${channelId}/bans/${userId}`, { method: "DELETE" });
   },
-  async getChannelModerationLog(channelId: string): Promise<unknown[]> {
-    return normalize<unknown[]>(await request<unknown[]>(`/channels/${channelId}/moderation-log`));
-  },
+async getChannelModerationLog(channelId: string): Promise<unknown[]> {
+  const raw = await request<unknown>(`/channels/${channelId}/moderation-log`);
+  return normalizeArrayResponse<unknown>(raw, ["logs", "events"], "/channels/:id/moderation-log");
+},
   async boostChannel(channelId: string, payload: { kind: string; value?: string }): Promise<{ ok: boolean; boostBalance?: number; activeBoosts?: number; boostMeta?: unknown }> {
     return request(`/channels/${channelId}/boost`, { method: "POST", body: JSON.stringify(payload) });
   },
-  async getMyChannelBoosts(): Promise<unknown[]> {
-    const raw = await request<unknown[]>("/channels/my-boosts");
-    return normalize<unknown[]>(raw);
-  },
+async getMyChannelBoosts(): Promise<unknown[]> {
+  const raw = await request<unknown>("/channels/my-boosts");
+  return normalizeArrayResponse<unknown>(raw, ["boosts"], "/channels/my-boosts");
+},
   async removeChannelBoost(boostId: string): Promise<{ ok: boolean; boostBalance?: number }> {
     return request(`/channels/boosts/${boostId}`, { method: "DELETE" });
   },
@@ -1407,10 +1419,10 @@ export const api = {
   async socialAction(action: "friend" | "favorite" | "block", userId: string): Promise<{ ok: boolean; active: boolean; friends?: boolean }> {
     return request(`/social/${action}`, { method: "POST", body: JSON.stringify({ userId }) });
   },
-  async getCircles(): Promise<unknown[]> {
-    const raw = await request<unknown>("/social/circles");
-    return normalizeArrayResponse<unknown>(raw, ["circles"], "/social/circles");
-  },
+async getCircles(): Promise<unknown[]> {
+  const raw = await request<unknown>("/social/circles");
+  return normalizeArrayResponse<unknown>(raw, ["circles"], "/social/circles");
+},
   async createCircle(payload: { name: string; color: string }): Promise<unknown> {
     const raw = await request<unknown>("/social/circles", { method: "POST", body: JSON.stringify(payload) });
     return normalize<unknown>(raw);
@@ -1426,40 +1438,40 @@ export const api = {
   },
 
   // ---- Support Tickets ----
-  async getMyTickets(): Promise<unknown[]> {
-    const raw = await request<unknown[]>("/support/tickets");
-    return normalize<unknown[]>(raw);
-  },
+async getMyTickets(): Promise<unknown[]> {
+  const raw = await request<unknown>("/support/tickets");
+  return normalizeArrayResponse<unknown>(raw, ["tickets"], "/support/tickets");
+},
 
   // ---- Admin: Tickets ----
-  async getTickets(status?: string): Promise<unknown[]> {
-    const qs = status ? `?status=${status}` : "";
-    const raw = await request<unknown[]>(`/admin/tickets${qs}`);
-    return normalize<unknown[]>(raw);
-  },
+async getTickets(status?: string): Promise<unknown[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  const raw = await request<unknown>(`/admin/tickets${qs}`);
+  return normalizeArrayResponse<unknown>(raw, ["tickets"], "/admin/tickets");
+},
   async updateTicket(id: string, payload: { status?: string; assignedTo?: string; priority?: string }): Promise<unknown> {
     return request(`/admin/tickets/${id}`, { method: "PATCH", body: JSON.stringify(payload) });
   },
   async createTicket(payload: { subject: string; body: string; category: string }): Promise<unknown> {
     return request("/support/tickets", { method: "POST", body: JSON.stringify(payload) });
   },
-  async getTicketMessages(ticketId: string, admin = false): Promise<unknown[]> {
-    const raw = await request<unknown[]>(`${admin ? "/admin" : "/support"}/tickets/${ticketId}/messages`);
-    return normalize<unknown[]>(raw);
-  },
+async getTicketMessages(ticketId: string, admin = false): Promise<unknown[]> {
+  const raw = await request<unknown>(`${admin ? "/admin" : "/support"}/tickets/${ticketId}/messages`);
+  return normalizeArrayResponse<unknown>(raw, ["messages"], "/tickets/:id/messages");
+},
   async replyTicket(ticketId: string, text: string, admin = false): Promise<unknown> {
     const raw = await request<unknown>(`${admin ? "/admin" : "/support"}/tickets/${ticketId}/messages`, { method: "POST", body: JSON.stringify({ text }) });
     return normalize<unknown>(raw);
   },
 
   // ---- Admin: Users ----
-  async getAdminUsers(search?: string, limit?: number): Promise<unknown[]> {
-    const qs = new URLSearchParams();
-    if (search) qs.set("search", search);
-    if (limit) qs.set("limit", String(limit));
-    const raw = await request<unknown[]>(`/admin/users${qs.toString() ? "?" + qs.toString() : ""}`);
-    return normalize<unknown[]>(raw);
-  },
+async getAdminUsers(search?: string, limit?: number): Promise<unknown[]> {
+  const qs = new URLSearchParams();
+  if (search) qs.set("search", search);
+  if (limit) qs.set("limit", String(limit));
+  const raw = await request<unknown>(`/admin/users${qs.toString() ? "?" + qs.toString() : ""}`);
+  return normalizeArrayResponse<unknown>(raw, ["users"], "/admin/users");
+},
   async getAdminUserDetail(userId: string): Promise<unknown> {
     const raw = await request<unknown>(`/admin/users/${userId}/detail`);
     return normalize<unknown>(raw);
@@ -1486,10 +1498,10 @@ export const api = {
   },
 
   // ---- Admin: Punishments ----
-  async getPunishments(): Promise<unknown[]> {
-    const raw = await request<unknown[]>("/admin/punishments");
-    return normalize<unknown[]>(raw);
-  },
+async getPunishments(): Promise<unknown[]> {
+  const raw = await request<unknown>("/admin/punishments");
+  return normalizeArrayResponse<unknown>(raw, ["punishments"], "/admin/punishments");
+},
   async createPunishment(payload: { userId: string; type: string; reason: string; duration: string }): Promise<unknown> {
     return request("/admin/punishments", { method: "POST", body: JSON.stringify(payload) });
   },
@@ -1501,18 +1513,18 @@ export const api = {
   async createReport(payload: { targetType: string; targetId: string; category: string; reason: string }): Promise<unknown> {
     return request("/admin/reports", { method: "POST", body: JSON.stringify(payload) });
   },
-  async getReports(status?: string): Promise<unknown[]> {
-    const qs = status ? `?status=${status}` : "";
-    const raw = await request<unknown[]>(`/admin/reports${qs}`);
-    return normalize<unknown[]>(raw);
-  },
+async getReports(status?: string): Promise<unknown[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  const raw = await request<unknown>(`/admin/reports${qs}`);
+  return normalizeArrayResponse<unknown>(raw, ["reports"], "/admin/reports");
+},
   async actionReport(id: string, action: string, payload: { note?: string; punishment?: { type: string; duration: string; reason: string; userId?: string } } = {}): Promise<{ ok: boolean }> {
     return request(`/admin/reports/${id}/action`, { method: "POST", body: JSON.stringify({ action, ...payload }) });
   },
-  async getReportNotes(id: string): Promise<unknown[]> {
-    const raw = await request<unknown[]>(`/admin/reports/${id}/notes`);
-    return normalize<unknown[]>(raw);
-  },
+async getReportNotes(id: string): Promise<unknown[]> {
+  const raw = await request<unknown>(`/admin/reports/${id}/notes`);
+  return normalizeArrayResponse<unknown>(raw, ["notes"], "/admin/reports/:id/notes");
+},
   async addReportNote(id: string, body: string): Promise<unknown> {
     const raw = await request<unknown>(`/admin/reports/${id}/notes`, { method: "POST", body: JSON.stringify({ body }) });
     return normalize<unknown>(raw);
@@ -1528,25 +1540,25 @@ export const api = {
   },
 
   // ---- Admin: Logs ----
-  async getLogs(): Promise<unknown[]> {
-    const raw = await request<unknown[]>("/admin/logs");
-    return normalize<unknown[]>(raw);
-  },
-  async getSafetyEvents(): Promise<unknown[]> {
-    const raw = await request<unknown[]>("/admin/safety/events");
-    return normalize<unknown[]>(raw);
-  },
-  async getSafetyFlags(status = "open"): Promise<unknown[]> {
-    const raw = await request<unknown[]>(`/admin/safety/flags?status=${encodeURIComponent(status)}`);
-    return normalize<unknown[]>(raw);
-  },
+async getLogs(): Promise<unknown[]> {
+  const raw = await request<unknown>("/admin/logs");
+  return normalizeArrayResponse<unknown>(raw, ["logs"], "/admin/logs");
+},
+async getSafetyEvents(): Promise<unknown[]> {
+  const raw = await request<unknown>("/admin/safety/events");
+  return normalizeArrayResponse<unknown>(raw, ["events"], "/admin/safety/events");
+},
+async getSafetyFlags(status = "open"): Promise<unknown[]> {
+  const raw = await request<unknown>(`/admin/safety/flags?status=${encodeURIComponent(status)}`);
+  return normalizeArrayResponse<unknown>(raw, ["flags"], "/admin/safety/flags");
+},
   async resolveSafetyFlag(id: string): Promise<{ ok: boolean }> {
     return request(`/admin/safety/flags/${id}/resolve`, { method: "POST" });
   },
-  async getSafetyUsers(mode: "all" | "trusted" | "restricted" = "all"): Promise<unknown[]> {
-    const raw = await request<unknown[]>(`/admin/safety/users?mode=${encodeURIComponent(mode)}`);
-    return normalize<unknown[]>(raw);
-  },
+async getSafetyUsers(mode: "all" | "trusted" | "restricted" = "all"): Promise<unknown[]> {
+  const raw = await request<unknown>(`/admin/safety/users?mode=${encodeURIComponent(mode)}`);
+  return normalizeArrayResponse<unknown>(raw, ["users"], "/admin/safety/users");
+},
   async getSafetyUser(id: string): Promise<unknown> {
     const raw = await request<unknown>(`/admin/safety/users/${id}`);
     return normalize<unknown>(raw);
@@ -1555,10 +1567,10 @@ export const api = {
     const raw = await request<unknown>(`/admin/safety/users/${id}/restrictions`, { method: "PATCH", body: JSON.stringify(payload) });
     return normalize<unknown>(raw);
   },
-  async getSafetyDomains(): Promise<unknown[]> {
-    const raw = await request<unknown[]>("/admin/safety/domains");
-    return normalize<unknown[]>(raw);
-  },
+async getSafetyDomains(): Promise<unknown[]> {
+  const raw = await request<unknown>("/admin/safety/domains");
+  return normalizeArrayResponse<unknown>(raw, ["domains"], "/admin/safety/domains");
+},
   async addSafetyDomain(payload: { domain: string; action: "allow" | "deny"; reason?: string }): Promise<unknown> {
     const raw = await request<unknown>("/admin/safety/domains", { method: "POST", body: JSON.stringify(payload) });
     return normalize<unknown>(raw);

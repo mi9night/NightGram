@@ -42,6 +42,20 @@ function sanitizeUploadId(value) {
   return safe || crypto.randomUUID();
 }
 
+function uploadErrorMessage(error) {
+  const message = String(error?.message || error || "");
+  if (/bucket.*not found|not found.*bucket|storage.*not found/i.test(message)) {
+    return "В Supabase не создан public bucket nightgram-media";
+  }
+  if (/row.level.security|permission|not authorized|unauthorized/i.test(message)) {
+    return "Supabase Storage отклонил загрузку. Проверь SERVICE_ROLE_KEY и политики bucket nightgram-media";
+  }
+  if (/payload|too large|entity too large/i.test(message)) {
+    return "Файл слишком большой";
+  }
+  return "Не удалось загрузить файл";
+}
+
 function fileSignatureMatches(buffer, mimeType) {
   if (!Buffer.isBuffer(buffer) || buffer.length < 4) return false;
   const ascii = (start, end) => buffer.subarray(start, end).toString('ascii');
@@ -154,7 +168,7 @@ router.post(
       if (error?.type === 'entity.too.large') {
         return res.status(413).json({ error: 'file_too_large', message: 'Максимальный размер файла — 50 МБ' });
       }
-      return res.status(error?.code === 'storage_unavailable' ? 503 : 500).json({ error: 'upload_failed', message: 'Не удалось загрузить файл' });
+      return res.status(error?.code === 'storage_unavailable' ? 503 : 500).json({ error: 'upload_failed', message: uploadErrorMessage(error) });
     }
   },
 );
@@ -179,7 +193,7 @@ router.post('/', async (req, res) => {
     res.status(201).json(result);
   } catch (error) {
     console.error(`[Upload ${req.requestId}]`, error.stack || error.message);
-    res.status(error?.code === 'storage_unavailable' ? 503 : 500).json({ error: 'upload_failed', message: 'Не удалось загрузить файл' });
+    res.status(error?.code === 'storage_unavailable' ? 503 : 500).json({ error: 'upload_failed', message: uploadErrorMessage(error) });
   }
 });
 
