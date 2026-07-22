@@ -716,9 +716,16 @@ export const api = {
 
   // ---- Stories ------------------------------------------------------------
   async getStories(): Promise<unknown[]> {
-    const raw = await request<unknown[]>("/stories");
-    return normalize<unknown[]>(raw);
-  },
+  const raw = await request<unknown>("/stories");
+  const normalized = normalize<unknown>(raw);
+
+  if (Array.isArray(normalized)) {
+    return normalized;
+  }
+
+  console.error("NightGram: /stories returned non-array", normalized);
+  return [];
+},
   async createStory(payload: { mediaUrl: string; mediaType?: "image" | "video"; text?: string; visibility?: "public" | "followers" | "circle"; circleId?: string }): Promise<unknown> {
     const raw = await request<unknown>("/stories", { method: "POST", body: JSON.stringify(payload) });
     return normalize<unknown>(raw);
@@ -736,12 +743,34 @@ export const api = {
 
   // ---- Feed ---------------------------------------------------------------
 
-  async getFeed(cursor?: string, limit = 6): Promise<{ posts: Post[]; nextCursor: string | null }> {
-    const qs = new URLSearchParams({ limit: String(limit) });
-    if (cursor) qs.set("cursor", cursor);
-    const raw = await request<unknown>(`/feed?${qs.toString()}`);
-    return normalize<{ posts: Post[]; nextCursor: string | null }>(raw);
-  },
+  async getFeed(
+  cursor?: string,
+  limit = 6,
+): Promise<{ posts: Post[]; nextCursor: string | null }> {
+  const qs = new URLSearchParams({ limit: String(limit) });
+
+  if (cursor) {
+    qs.set("cursor", cursor);
+  }
+
+  const raw = await request<unknown>(`/feed?${qs.toString()}`);
+  const normalized = normalize<unknown>(raw);
+
+  if (!normalized || typeof normalized !== "object") {
+    console.error("NightGram: /feed returned invalid value", normalized);
+    return { posts: [], nextCursor: null };
+  }
+
+  const data = normalized as Record<string, unknown>;
+
+  return {
+    posts: Array.isArray(data.posts) ? data.posts as Post[] : [],
+    nextCursor:
+      typeof data.nextCursor === "string"
+        ? data.nextCursor
+        : null,
+  };
+},
 
   async toggleLike(postId: string): Promise<{ liked: boolean; likesCount: number }> {
     const raw = await request<unknown>(`/posts/${postId}/like`, { method: "POST" });

@@ -33,7 +33,17 @@ export function StoriesBar() {
     if (typeof window !== "undefined") localStorage.removeItem(LOCAL_KEY);
     try {
       const remote = await api.getStories();
-      setGroups(remote as StoryGroup[]);
+
+const safeGroups = Array.isArray(remote)
+  ? remote.filter((item): item is StoryGroup => {
+      if (!item || typeof item !== "object") return false;
+
+      const group = item as Partial<StoryGroup>;
+      return Array.isArray(group.stories);
+    })
+  : [];
+
+setGroups(safeGroups);
     } catch {
       setGroups([]);
       // Do not spam users with a scary launch-time error if stories tables are not installed yet.

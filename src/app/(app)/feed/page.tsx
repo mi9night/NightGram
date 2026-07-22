@@ -47,19 +47,28 @@ export default function FeedPage() {
     const key = cacheKey(user?.id, "feed:first-page");
     const cached = readClientCache<{ posts: Post[]; nextCursor: string | null }>(key, FEED_CACHE_MAX_AGE, FEED_STALE_MAX_AGE);
 
-    if (cached) {
-      setPosts(cached.posts);
-      setCursor(cached.nextCursor);
-      setReachedEnd(cached.nextCursor === null);
-      setLoading(false);
-    } else {
+    if (cached && Array.isArray(cached.posts)) {
+  setPosts(cached.posts);
+  setCursor(
+    typeof cached.nextCursor === "string"
+      ? cached.nextCursor
+      : null,
+  );
+  setReachedEnd(cached.nextCursor === null);
+  setLoading(false);
+} else {
       setLoading(true);
     }
 
     api.getFeed(undefined, PAGE_SIZE)
       .then((data) => {
-        if (!active) return;
-        setPosts(data.posts);
+  if (!active) return;
+
+  const safePosts = Array.isArray(data.posts)
+    ? data.posts
+    : [];
+
+  setPosts(safePosts);
         setCursor(data.nextCursor);
         setReachedEnd(data.nextCursor === null);
         setError(false);
