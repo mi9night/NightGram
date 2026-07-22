@@ -7,11 +7,28 @@ on:
   pull_request:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightgram-tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
-    name: TypeScript and Build Check
+    name: TypeScript and Dependency Check
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
+      NPM_CONFIG_FETCH_RETRIES: "5"
+      NPM_CONFIG_FETCH_RETRY_MINTIMEOUT: "10000"
+      NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT: "120000"
 
     steps:
       - name: Checkout repository
@@ -20,49 +37,34 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: ".nvmrc"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
 
-      - name: Configure npm registry
+      - name: Verify Node.js version
         run: |
-          npm config delete proxy
-          npm config delete https-proxy
-          npm config delete noproxy
-          npm config set registry https://registry.npmjs.org/
-          npm config set fetch-retries 10
-          npm config set fetch-retry-factor 2
-          npm config set fetch-retry-mintimeout 20000
-          npm config set fetch-retry-maxtimeout 120000
-          npm config list
+          node --version
+          npm --version
 
-      - name: Clear npm cache
-        run: npm cache clean --force
+      - name: Reject internal registry URLs
+        shell: bash
+        run: |
+          if grep -R "applied-caas-gateway" package-lock.json backend/package-lock.json; then
+            echo "Ошибка: package-lock.json содержит внутренний npm registry."
+            exit 1
+          fi
 
       - name: Install frontend dependencies
-        env:
-          npm_config_registry: https://registry.npmjs.org/
-          npm_config_proxy: ""
-          npm_config_https_proxy: ""
-        run: |
-          npm ci \
-          --registry=https://registry.npmjs.org/ \
-          --fetch-retries=10 \
-          --fetch-retry-factor=2 \
-          --fetch-retry-mintimeout=20000 \
-          --fetch-retry-maxtimeout=120000
-
-      - name: TypeScript check
-        run: npx tsc --noEmit
+        run: npm ci
 
       - name: Install backend dependencies
         working-directory: backend
-        env:
-          npm_config_registry: https://registry.npmjs.org/
-          npm_config_proxy: ""
-          npm_config_https_proxy: ""
-        run: |
-          npm ci \
-          --registry=https://registry.npmjs.org/ \
-          --fetch-retries=10 \
-          --fetch-retry-factor=2 \
-          --fetch-retry-mintimeout=20000 \
-          --fetch-retry-maxtimeout=120000
+        run: npm ci
+
+      - name: TypeScript check
+        run: npm run type-check
+
+      - name: Native project checks
+        run: npm run test:native
