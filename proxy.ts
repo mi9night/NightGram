@@ -47,7 +47,7 @@ function cleanupStaleCookies(res: NextResponse, access?: string, refresh?: strin
   return res;
 }
 
-export function middleware(req: NextRequest) {
+export function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const access = req.cookies.get("ng_access_token")?.value;
   const refresh = req.cookies.get("ng_refresh_token")?.value;
