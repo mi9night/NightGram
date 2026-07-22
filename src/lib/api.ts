@@ -423,20 +423,34 @@ function isTransientNetworkError(error: unknown): boolean {
 
 function deviceRequestHeaders(): Record<string, string> {
   if (!isBrowser()) return {};
+
   const ua = navigator.userAgent.toLowerCase();
   let platform = "web";
+
   if (window.nightgramDesktop) platform = "windows-desktop";
   else if (ua.includes("android")) platform = "android";
   else if (/iphone|ipad|ipod/.test(ua)) platform = "ios";
   else if (ua.includes("windows")) platform = "windows-web";
   else if (ua.includes("mac os")) platform = "macos-web";
   else if (ua.includes("linux")) platform = "linux-web";
-  const deviceName = window.nightgramDesktop
-    ? "NightGram для Windows"
-    : `${navigator.platform || "Устройство"} · браузер`;
+
+  const rawDeviceName = window.nightgramDesktop
+    ? "NightGram for Windows"
+    : `${navigator.platform || "Device"} - Browser`;
+
+  // Fetch requires header values to stay within ISO-8859-1.
+  // Restrict device metadata to printable ASCII so Cyrillic, emoji,
+  // middle dots and other Unicode characters cannot break a request.
+  const deviceName =
+    rawDeviceName
+      .replace(/[^\x20-\x7E]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 120) || "NightGram Device";
+
   return {
     "X-NightGram-Platform": platform,
-    "X-NightGram-Device-Name": deviceName.slice(0, 120),
+    "X-NightGram-Device-Name": deviceName,
   };
 }
 
