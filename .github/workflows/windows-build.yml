@@ -1,37 +1,68 @@
 name: NightGram Windows Build
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   windows:
     name: Build Windows Installer
     runs-on: windows-latest
+    timeout-minutes: 45
+
+    env:
+      NPM_CONFIG_REGISTRY: https://registry.npmjs.org/
+      NPM_CONFIG_AUDIT: "false"
+      NPM_CONFIG_FUND: "false"
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: '.nvmrc'
+          node-version-file: ".nvmrc"
           cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Verify Node.js
+        shell: cmd
+        run: |
+          node --version
+          npm --version
 
       - name: Install dependencies
+        shell: cmd
         run: npm ci
 
-      - name: Build Windows
-        run: |
-          npm run build
-        env:
-          CI: false
+      - name: Build Windows installer
+        shell: cmd
+        run: call BUILD_PC_INSTALLER.bat
 
-      - name: Upload build
+      - name: Verify installer exists
+        shell: powershell
+        run: |
+          $installers = Get-ChildItem -Path "release" -Filter "*.exe" -Recurse -ErrorAction SilentlyContinue
+
+          if (-not $installers) {
+            Write-Error "Windows installer was not created in release/"
+            exit 1
+          }
+
+          $installers | ForEach-Object {
+            Write-Host "Created installer: $($_.FullName)"
+            Write-Host "Size: $($_.Length) bytes"
+          }
+
+      - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: NightGram-Windows
-          path: release/
+          name: NightGram-Windows-Installer
+          path: |
+            release/*.exe
+            release/*.sha256
+          if-no-files-found: error
+          retention-days: 14
